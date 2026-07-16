@@ -93,11 +93,11 @@ def process_current_page(page, max_vagas_pagina=25):
 
 
 def run_scraper_linkdin(max_paginas=2):
-    LINKEDIN_LOG = os.getenv("LINKEDIN_STATE")
+    LINKEDIN_LOG = os.getenv("LINKEDIN_LOG")
 
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=False,  #True para produção, False para desenvolvimento - Esse trecho faz com que a janela do google ebra ou não!
+            headless=True,  #True para produção, False para desenvolvimento - Esse trecho faz com que a janela do google ebra ou não!
             args=["--no-sandbox", "--start-maximized"]
         )
 
