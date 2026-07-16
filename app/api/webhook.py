@@ -11,7 +11,6 @@ API_TOKEN = os.getenv("API_TOKEN")
 
 router = APIRouter()
 
-
 @router.post(f"/webhook/{API_TOKEN}")
 async def webhook(update: dict):
     if update:
