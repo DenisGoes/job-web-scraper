@@ -1,0 +1,154 @@
+from playwright.sync_api import sync_playwright
+from app.database.crud.crud_linkedin import salvar_vaga
+from app.scrapers.linkdin.filtros import safe_text, titulo_relevante, descricao_relevante
+import time, random, os, json
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+COOKIES_PATH = os.path.join(BASE_DIR, "cookies")
+os.makedirs(COOKIES_PATH, exist_ok=True)
+
+
+# Rola a lista de vagas da página atual algumas vezes,
+# só para garantir que os cards visíveis carreguem imagens/lazy content.
+def scroll_current_page(page, times=5):
+    print("Executando scroll...")
+
+    page.locator("[data-job-id]").first.hover()
+
+    for _ in range(times):
+        page.mouse.wheel(0, 800)
+        page.wait_for_timeout(int(random.uniform(600, 1200)))
+
+# Processa todos os cards de vaga carregados na página atual.
+def process_current_page(page, max_vagas_pagina=25):
+    page.wait_for_selector("[data-job-id]", timeout=15000)
+    time.sleep(5)
+
+    cards = page.locator("[data-job-id]")
+    total_cards = min(cards.count(), max_vagas_pagina)
+    print(f"  -> {total_cards} vagas encontradas nesta página")
+
+    for i in range(total_cards):
+        try:
+            card = cards.nth(i)
+            card.scroll_into_view_if_needed()
+            time.sleep(random.uniform(0.5, 1.0))
+            titulo = safe_text(card.locator("a[data-control-id] strong"))
+
+            if not titulo_relevante(titulo):
+                continue
+
+            card.click()
+            page.locator("#job-details").wait_for()
+
+            descricao = page.locator("#job-details .mt4").text_content()
+            print("=" * 50)
+            print(descricao[:300])  # primeiros 300 caracteres
+            print(descricao_relevante(descricao))
+
+            if not descricao_relevante(descricao):
+                continue
+
+            vaga_id = card.get_attribute("data-job-id")
+            empresa = safe_text(card.locator(".vTXXHdHUxAwSDLXkjQOiaQhrXcqrIlJnCUQPVU"))
+            localidade = safe_text(card.locator("li span[dir='ltr']").first)
+            data = safe_text(card.locator("time"))
+            if data == "N/A":
+                data = "Promovida"
+
+            link_vaga = card.locator("a[data-control-id]").get_attribute("href")
+            link_vaga = "https://www.linkedin.com" + link_vaga if link_vaga else "N/A"
+
+            mensagem = (
+                "🔥 <b>Nova vaga no LinkedIn!</b>\n\n"
+                f"📌 <b>{titulo}</b>\n"
+                f"🏢 {empresa}\n"
+                f"📍 {localidade}\n"
+                f"📅 {data}\n"
+                f"🔗 {link_vaga}"
+            )
+
+            print(f"""
+                Titulo: {titulo}
+                Empresa: {empresa}
+                Localidade: {localidade}
+                Data publicação: {data}
+                Link: {link_vaga}
+                Salvando vaga no banco... {vaga_id}
+            """)
+
+            salvar_vaga(
+                vaga_id=vaga_id,
+                fonte="linkedin",
+                titulo=titulo,
+                empresa=empresa,
+                localidade=localidade,
+                link_vaga=link_vaga,
+                data_publicacao=data,
+                mensagem=mensagem
+            )
+
+        except Exception as e:
+            print(f"Um erro inesperado aconteceu no card {i}: {e}")
+
+
+def run_scraper_linkdin(max_paginas=2):
+    LINKEDIN_LOG = os.getenv("LINKEDIN_STATE")
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=False,  #True para produção, False para desenvolvimento - Esse trecho faz com que a janela do google ebra ou não!
+            args=["--no-sandbox", "--start-maximized"]
+        )
+
+        if LINKEDIN_LOG:
+            context = browser.new_context(
+                storage_state=json.loads(LINKEDIN_LOG) #Variavel de ambiente usada em produção!
+            )
+        else:
+            STATE_PATH = os.path.join( #Caminho absoluto usado em desenvolvimento!
+                BASE_DIR,
+                "cookies",
+                "linkedin_log.json"
+            )
+
+            context = browser.new_context(
+                storage_state=STATE_PATH
+            )
+
+        page = context.new_page()
+        page.set_default_timeout(60000)  # evita timeout de 30s padrão em ações lentas
+
+        page.goto("https://www.linkedin.com/feed?nis=true", wait_until="domcontentloaded")
+        time.sleep(5)
+
+        page.goto(
+            "https://www.linkedin.com/jobs/search/?alertAction=viewjobs&currentJobId=4433197676"
+            "&distance=25&f_E=1%2C2%2C3&f_F=it&f_I=96%2C4%2C6%2C3231&f_JT=F%2CP%2CC%2CI"
+            "&f_TPR=r604800&f_WT=1%2C3%2C2&geoId=107636196&keywords=software"
+            "&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true&sortBy=DD",
+            wait_until="domcontentloaded"
+        )
+
+        pagina_atual = 1
+        while pagina_atual <= max_paginas:
+            print(f"\n=== Processando página {pagina_atual} ===")
+            scroll_current_page(page)
+            process_current_page(page)
+
+            next_button = page.locator(
+                "button.jobs-search-pagination__button--next"
+            )
+
+            if next_button.count() == 0 or not next_button.is_enabled():
+                print("Não há mais páginas. Encerrando.")
+                break
+
+            next_button.click()
+            time.sleep(random.uniform(3, 5))
+            pagina_atual += 1
+
+        time.sleep(3)
+        browser.close()
+
+#Todos os prints foram usados com o proposito de debug!!!
