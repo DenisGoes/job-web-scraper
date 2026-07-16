@@ -8,12 +8,35 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COOKIES_PATH = os.path.join(BASE_DIR, "cookies")
 os.makedirs(COOKIES_PATH, exist_ok=True)
 
+
+def close_popups(page):
+    try:
+        modal = page.locator("#modalPremiumDestaque")
+
+        if modal.is_visible():
+            print("Fechando popup premium...")
+
+            close_button = page.locator(
+                "#modalPremiumDestaque button"
+            )
+
+            if close_button.count() > 0:
+                close_button.first.click()
+            else:
+                page.keyboard.press("Escape")
+
+            page.wait_for_timeout(1000)
+
+    except Exception:
+        pass
+
 def run_scraper_infojobs():
+    
     INFOJOBS_LOG = os.getenv("INFOJOBS_LOG")
     # Inicia o navegador utilizando uma sessão persistente.
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=True, #True para produção, False para desenvolvimento - Esse trecho faz com que a janela do google ebra ou não!
+            headless=False, #True para produção, False para desenvolvimento - Esse trecho faz com que a janela do google ebra ou não!
             args=["--no-sandbox", "--start-maximized"]
         )
 
@@ -59,13 +82,18 @@ def run_scraper_infojobs():
         for i in range(total_cards):
             try:
                 card = cards.nth(i)
+                close_popups(page)
                 titulo = safe_text(card.locator(".js_vacancyTitle"))
                 if not titulo_relevante(titulo):
                     continue
 
-                card.click()
+                # Evita bloqueio do popup
+                card.evaluate("(element) => element.click()")
+                page.wait_for_timeout(2000)
+                close_popups(page)
+                
                 descricao_locator = page.locator("div.text-medium").first
-                descricao_locator.wait_for(state="visible")
+                descricao_locator.wait_for(state="visible", timeout=10000)
 
                 descricao = descricao_locator.text_content()
 
@@ -87,9 +115,9 @@ def run_scraper_infojobs():
                 data = safe_text(card.locator(".small.text-nowrap"))
 
                 mensagem = (
-                    "🔥 <b>Nova vaga no LinkedIn!</b>\n\n"
+                    "🔥 <b>Nova vaga no InfoJobs!</b>\n\n"
                     f"📌 <b>{titulo}</b>\n"
-                    f"🏢 {empresa}""\n"
+                    f"🏢 {empresa}\n"
                     f"📍 {localidade}\n"
                     f"{salario}\n"
                     f"{modelo_trabalho}\n"
@@ -98,15 +126,15 @@ def run_scraper_infojobs():
                 )
                 # Exibe os dados coletados no terminal.
                 print(f"""
-                    Titulo: {titulo}\n
-                    Empresa: {empresa}\n
-                    Localidade: {localidade}\n
+                    Titulo: {titulo}
+                    Empresa: {empresa}
+                    Localidade: {localidade}
                     Salário: {salario}
-                    Modelo de trabalho: {modelo_trabalho}\n
-                    Link: {link_vaga}\n
-                    Data: {data}\n
+                    Modelo de trabalho: {modelo_trabalho}
+                    Link: {link_vaga}
+                    Data: {data}
                     Salvando vaga no banco... {vaga_id}
-                """)
+                    """)
 
                 # Salva a vaga no banco de dados.
                 salvar_vaga(
