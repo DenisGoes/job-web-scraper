@@ -2,31 +2,6 @@ name: Scraper Vagas
 
 on:
   schedule:
-<<<<<<< HEAD
-    - cron: "0 * * * *" # Roda automaticamente de hora em hora
-  workflow_dispatch: # Permite rodar manualmente pelo botão no GitHub
-
-jobs:
-  run-scraper:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Baixar código
-        uses: actions/checkout@v4
-
-      - name: Instalar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Instalar dependências e Playwright
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install playwright
-          playwright install chromium --with-deps
-
-=======
     - cron: "0 * * * *" # Executa de hora em hora
   workflow_dispatch: # Permite executar manualmente pelo GitHub
 
@@ -58,7 +33,6 @@ jobs:
           playwright install chromium --with-deps
 
 
->>>>>>> eece1f0 (Atualiza workflow)
       - name: Executar scraper
         env:
           API_TOKEN: ${{ secrets.API_TOKEN }}
@@ -66,9 +40,5 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           LINKEDIN_EMAIL: ${{ secrets.LINKEDIN_EMAIL }}
           LINKEDIN_PASSWORD: ${{ secrets.LINKEDIN_PASSWORD }}
-<<<<<<< HEAD
-        run: python main.py
-=======
 
         run: python -m app.scripts.run_scraper
->>>>>>> eece1f0 (Atualiza workflow)
