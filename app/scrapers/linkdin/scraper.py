@@ -165,7 +165,16 @@ def run_scraper_linkdin(max_paginas=2):
 
         page = context.new_page()
         page.set_default_timeout(30000)  # evita timeout de 30s padrão em ações lentas
-
+        
+        LINKEDIN_LOG = os.getenv("LINKEDIN_LOG")
+        if not LINKEDIN_LOG:
+            raise Exception(
+                "LINKEDIN_LOG não encontrado. Configure o secret no GitHub Actions."
+            )
+        print("Linkedin secret existe:", bool(LINKEDIN_LOG))
+        context = browser.new_context(
+            storage_state=json.loads(LINKEDIN_LOG)
+        )
         page.goto("https://www.linkedin.com/feed?nis=true", wait_until="domcontentloaded")
         time.sleep(5)
 
