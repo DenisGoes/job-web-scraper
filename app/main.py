@@ -26,21 +26,48 @@ WEBHOOK_URL = (
 
 
 
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+
+#     # Executa quando o servidor inicia
+#     bot.remove_webhook()
+#     bot.set_webhook(url=WEBHOOK_URL)
+
+#     print("Webhook configurado!")
+
+#     yield  # Aqui o FastAPI fica rodando
+
+#     # Executa quando o servidor é encerrado
+#     bot.remove_webhook()
+
+#     print("Webhook removido!")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    # Executa quando o servidor inicia
+    print("=" * 50)
+    print("API_TOKEN:", API_TOKEN[:10] + "..." if API_TOKEN else "NÃO ENCONTRADO")
+    print("API_URL:", API_URL)
+    print("WEBHOOK_URL:", WEBHOOK_URL)
+
+    try:
+        bot.remove_webhook()
+
+        ok = bot.set_webhook(url=WEBHOOK_URL)
+        print("set_webhook retornou:", ok)
+
+        info = bot.get_webhook_info()
+        print("Webhook info:", info)
+
+    except Exception as e:
+        print("Erro ao configurar webhook:", e)
+
+    print("=" * 50)
+
+    yield
+
     bot.remove_webhook()
-    bot.set_webhook(url=WEBHOOK_URL)
 
-    print("Webhook configurado!")
-
-    yield  # Aqui o FastAPI fica rodando
-
-    # Executa quando o servidor é encerrado
-    bot.remove_webhook()
-
-    print("Webhook removido!")
 
 
 app = FastAPI(lifespan=lifespan)
