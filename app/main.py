@@ -50,3 +50,7 @@ app.include_router(router)
 @app.get("/healthz")
 def health_check():
     return {"status": "ok"}
+
+@app.get("/")
+def root():
+    return {"status": "API online"}

@@ -8,6 +8,7 @@ from datetime import datetime, UTC
 import os
 import telebot
 import time
+import traceback
 
 load_dotenv()
 
@@ -18,7 +19,11 @@ bot = telebot.TeleBot(API_TOKEN)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback(call):
-    
+    bot.answer_callback_query(call.id)
+    print("===================================")
+    print("CALLBACK RECEBIDO")
+    print(call.data)
+    print(call.id)
     session = SessionLocal()
 
     try:
@@ -68,8 +73,10 @@ def callback(call):
 
                 bot.answer_callback_query(call.id, "Vaga rejeitada")
 
-    except Exception as e:
-        print(f"Erro callback: {e}")
+    
+
+    except Exception:
+        traceback.print_exc()
 
     finally:
         session.close()
