@@ -4,75 +4,36 @@ from fastapi import FastAPI
 from dotenv import load_dotenv
 import os
 
-from app.api.webhook import router
+from app.api.webhook import router as webhook_router
 from app.services.telegram import bot
 
 
 load_dotenv()
 
-API_TOKEN = os.getenv("API_TOKEN")
-API_URL = os.getenv("API_URL")
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
-WEBHOOK_URL = (
-    f"{API_URL}"
-    f"/webhook"
-)
-
-
-# WEBHOOK_URL = ( # Usada em desenvolvimento e testes locais
-#     f"https://dazzling-destitute-fragrance.ngrok-free.dev"
-#     f"/webhook/{API_TOKEN}"
-# )
-
-
-
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-
-#     # Executa quando o servidor inicia
-#     bot.remove_webhook()
-#     bot.set_webhook(url=WEBHOOK_URL)
-
-#     print("Webhook configurado!")
-
-#     yield  # Aqui o FastAPI fica rodando
-
-#     # Executa quando o servidor é encerrado
-#     bot.remove_webhook()
-
-#     print("Webhook removido!")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    print("=" * 50)
-    print("API_TOKEN:", API_TOKEN[:10] + "..." if API_TOKEN else "NÃO ENCONTRADO")
-    print("API_URL:", API_URL)
-    print("WEBHOOK_URL:", WEBHOOK_URL)
-
-    try:
-        bot.remove_webhook()
-
-        ok = bot.set_webhook(url=WEBHOOK_URL)
-        print("set_webhook retornou:", ok)
-
-        info = bot.get_webhook_info()
-        print("Webhook info:", info)
-
-    except Exception as e:
-        print("Erro ao configurar webhook:", e)
-
-    print("=" * 50)
+    # configura webhook ao iniciar
+    if WEBHOOK_URL:
+        bot.set_webhook(
+            url=WEBHOOK_URL
+        )
+        print(f"Webhook configurado: {WEBHOOK_URL}")
 
     yield
 
-    bot.remove_webhook()
+    print("Aplicação encerrada")
 
 
+app = FastAPI(
+    lifespan=lifespan
+)
 
-app = FastAPI(lifespan=lifespan)
 
-app.include_router(router)
+app.include_router(webhook_router)
 
 @app.get("/healthz")
 def health_check():
@@ -81,3 +42,7 @@ def health_check():
 @app.get("/")
 def root():
     return {"status": "API online"}
+# WEBHOOK_URL = ( # Usada em desenvolvimento e testes locais
+#     f"https://dazzling-destitute-fragrance.ngrok-free.dev"
+#     f"/webhook/{API_TOKEN}"
+# )
