@@ -19,11 +19,6 @@ bot = telebot.TeleBot(API_TOKEN)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback(call):
-    bot.answer_callback_query(call.id)
-    print("===================================")
-    print("CALLBACK RECEBIDO")
-    print(call.data)
-    print(call.id)
     session = SessionLocal()
 
     try:
