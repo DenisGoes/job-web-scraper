@@ -15,13 +15,15 @@ WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    print("====================")
+    print("WEBHOOK_URL =", WEBHOOK_URL)
+    webhook_url = os.getenv("WEBHOOK_URL")
 
-    # configura webhook ao iniciar
-    if WEBHOOK_URL:
-        bot.set_webhook(
-            url=WEBHOOK_URL
-        )
-        print(f"Webhook configurado: {WEBHOOK_URL}")
+    print("WEBHOOK:", webhook_url)
+
+    if webhook_url:
+        bot.set_webhook(webhook_url)
+        print("Webhook configurado")
 
     yield
 
