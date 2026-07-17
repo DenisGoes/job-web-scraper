@@ -6,7 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-scraper:
+  infojobs:
+    name: Scraper InfoJobs
     runs-on: ubuntu-latest
 
     steps:
@@ -27,21 +28,40 @@ jobs:
         run: |
           playwright install chromium --with-deps
 
-      - name: Executar scraper
+      - name: Executar scraper InfoJobs
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           API_TOKEN: ${{ secrets.API_TOKEN }}
           CANAL_ID: ${{ secrets.CANAL_ID }}
           INFOJOBS_LOG: ${{ secrets.INFOJOBS_LOG }}
-          LINKEDIN_LOG: ${{ secrets.LINKEDIN_LOG }}
-        run: python -m app.scripts.run_scraper
+        run: python -m app.scripts.run_infojobs
 
-      - name: Upload screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
+  linkedin:
+    name: Scraper LinkedIn
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
         with:
-          name: playwright-debug
-          path: |
-            linkedin_debug.png
-            *.png
-          if-no-files-found: ignore
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Instalar Chromium do Playwright
+        run: |
+          playwright install chromium --with-deps
+
+      - name: Executar scraper LinkedIn
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          CANAL_ID: ${{ secrets.CANAL_ID }}
+          LINKEDIN_LOG: ${{ secrets.LINKEDIN_LOG }}
+        run: python -m app.scripts.run_linkedin
