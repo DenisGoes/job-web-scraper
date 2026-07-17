@@ -1,7 +1,9 @@
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 from app.database.crud.crud_linkedin import salvar_vaga
 from app.scrapers.linkdin.filtros import safe_text, titulo_relevante, descricao_relevante
 import time, random, os, json
+
+
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COOKIES_PATH = os.path.join(BASE_DIR, "cookies")
@@ -13,16 +15,61 @@ os.makedirs(COOKIES_PATH, exist_ok=True)
 def scroll_current_page(page, times=5):
     print("Executando scroll...")
 
-    page.locator("[data-job-id]").first.hover()
+    try:
+        cards = page.locator("[data-job-id]")
+        quantidade = cards.count()
 
-    for _ in range(times):
-        page.mouse.wheel(0, 800)
-        page.wait_for_timeout(int(random.uniform(600, 1200)))
+        print(f"Cards encontrados antes do scroll: {quantidade}")
+
+        if quantidade > 0:
+            try:
+                cards.first.hover(timeout=5000)
+            except Exception:
+                print("Não foi possível fazer hover no card. Continuando scroll.")
+
+        else:
+            print("Nenhum card encontrado. Fazendo scroll normal.")
+
+        for _ in range(times):
+            page.mouse.wheel(0, 800)
+
+            page.wait_for_timeout(
+                int(random.uniform(800, 1500))
+            )
+
+
+    except Exception as e:
+        print(f"Erro no scroll: {e}")
+
+        try:
+            page.screenshot(
+                path="erro_scroll.png",
+                full_page=True
+            )
+        except:
+            pass
 
 # Processa todos os cards de vaga carregados na página atual.
 def process_current_page(page, max_vagas_pagina=25):
-    page.wait_for_selector("[data-job-id]", timeout=15000)
-    time.sleep(5)
+    try:
+        page.wait_for_selector(
+            "[data-job-id]",
+            timeout=20000
+        )
+
+    except PlaywrightTimeoutError:
+        print("Nenhum card de vaga carregou.")
+        try:
+            page.screenshot(
+                path="erro_sem_cards.png",
+                full_page=True
+            )
+        except:
+            pass
+
+        return
+
+    time.sleep(3)
 
     cards = page.locator("[data-job-id]")
     total_cards = min(cards.count(), max_vagas_pagina)
@@ -98,7 +145,7 @@ def run_scraper_linkdin(max_paginas=2):
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=True,  #True para produção, False para desenvolvimento - Esse trecho faz com que a janela do google ebra ou não!
-            args=["--no-sandbox", "--start-maximized"]
+            args=["--no-sandbox", "--start-maximized", "--disable-dev-shm-usage"]
         )
 
         if LINKEDIN_LOG:
@@ -117,7 +164,7 @@ def run_scraper_linkdin(max_paginas=2):
             )
 
         page = context.new_page()
-        page.set_default_timeout(60000)  # evita timeout de 30s padrão em ações lentas
+        page.set_default_timeout(30000)  # evita timeout de 30s padrão em ações lentas
 
         page.goto("https://www.linkedin.com/feed?nis=true", wait_until="domcontentloaded")
         time.sleep(5)
@@ -133,6 +180,7 @@ def run_scraper_linkdin(max_paginas=2):
         pagina_atual = 1
         while pagina_atual <= max_paginas:
             print(f"\n=== Processando página {pagina_atual} ===")
+            process_current_page(page)
             scroll_current_page(page)
             process_current_page(page)
 
@@ -145,7 +193,15 @@ def run_scraper_linkdin(max_paginas=2):
                 break
 
             next_button.click()
-            time.sleep(random.uniform(3, 5))
+
+            page.wait_for_timeout(
+                random.randint(4000,6000)
+            )
+
+            page.wait_for_selector(
+                "[data-job-id]"
+            )
+
             pagina_atual += 1
 
         time.sleep(3)
