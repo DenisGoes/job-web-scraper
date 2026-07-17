@@ -186,6 +186,11 @@ def run_scraper_linkdin(max_paginas=2):
             wait_until="domcontentloaded"
         )
 
+        page.screenshot(path="linkedin_debug.png", full_page=True)
+
+        print(page.title())
+        print(page.url)
+        print(page.content()[:2000])
         pagina_atual = 1
         while pagina_atual <= max_paginas:
             print(f"\n=== Processando página {pagina_atual} ===")
