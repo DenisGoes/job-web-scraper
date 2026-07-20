@@ -36,7 +36,7 @@ def run_scraper_infojobs():
     # Inicia o navegador utilizando uma sessão persistente.
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=False, #True para produção, False para desenvolvimento - Esse trecho faz com que a janela do google abra ou não!
+            headless=True, #True para produção, False para desenvolvimento - Esse trecho faz com que a janela do google abra ou não!
             args=["--no-sandbox"
                   # "--start-maximized" # Usado em desenvolvimento
             ]
