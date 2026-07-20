@@ -139,7 +139,7 @@ def process_current_page(page, max_vagas_pagina=25):
             print(f"Um erro inesperado aconteceu no card {i}: {e}")
 
 
-def run_scraper_linkdin(max_paginas=2):
+def run_scraper_linkdin(max_paginas=4):
     LINKEDIN_LOG = os.getenv("LINKEDIN_LOG")
 
     with sync_playwright() as p:
@@ -170,10 +170,7 @@ def run_scraper_linkdin(max_paginas=2):
         time.sleep(15)
 
         page.goto(
-            "https://www.linkedin.com/jobs/search/?alertAction=viewjobs&currentJobId=4433197676"
-            "&distance=25&f_E=1%2C2%2C3&f_F=it&f_I=96%2C4%2C6%2C3231&f_JT=F%2CP%2CC%2CI"
-            "&f_TPR=r604800&f_WT=1%2C3%2C2&geoId=107636196&keywords=software"
-            "&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true&sortBy=DD",
+            "https://www.linkedin.com/jobs/search/?currentJobId=4441999555&distance=10&f_E=1%2C2%2C3&f_JT=F%2CP%2CC%2CI%2CO&f_TPR=r604800&geoId=104746682&keywords=desenvolvedor&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true&sortBy=R",
             wait_until="domcontentloaded"
         )
         pagina_atual = 1
