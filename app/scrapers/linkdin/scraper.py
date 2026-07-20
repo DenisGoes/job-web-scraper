@@ -89,9 +89,9 @@ def process_current_page(page, max_vagas_pagina=25):
             page.locator("#job-details").wait_for()
 
             descricao = page.locator("#job-details .mt4").text_content()
-            print("=" * 50)
-            print(descricao[:300])  # primeiros 300 caracteres
-            print(descricao_relevante(descricao))
+            # print("=" * 50) #Usado para debug
+            # print(descricao[:300])  # primeiros 300 caracteres #Usado para debug
+            # print(descricao_relevante(descricao)) #Usado para debug
 
             if not descricao_relevante(descricao):
                 continue
@@ -144,7 +144,7 @@ def run_scraper_linkdin(max_paginas=2):
 
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=True,  #True para produção, False para desenvolvimento - Esse trecho faz com que a janela do google ebra ou não!
+            headless=False,  #True para produção, False para desenvolvimento - Esse trecho faz com que a janela do google ebra ou não!
             args=["--no-sandbox", "--start-maximized", "--disable-dev-shm-usage"]
         )
 
@@ -166,17 +166,8 @@ def run_scraper_linkdin(max_paginas=2):
         page = context.new_page()
         page.set_default_timeout(30000)  # evita timeout de 30s padrão em ações lentas
         
-        LINKEDIN_LOG = os.getenv("LINKEDIN_LOG")
-        if not LINKEDIN_LOG:
-            raise Exception(
-                "LINKEDIN_LOG não encontrado. Configure o secret no GitHub Actions."
-            )
-        print("Linkedin secret existe:", bool(LINKEDIN_LOG))
-        context = browser.new_context(
-            storage_state=json.loads(LINKEDIN_LOG)
-        )
         page.goto("https://www.linkedin.com/feed?nis=true", wait_until="domcontentloaded")
-        time.sleep(5)
+        time.sleep(15)
 
         page.goto(
             "https://www.linkedin.com/jobs/search/?alertAction=viewjobs&currentJobId=4433197676"
@@ -185,12 +176,6 @@ def run_scraper_linkdin(max_paginas=2):
             "&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true&sortBy=DD",
             wait_until="domcontentloaded"
         )
-
-        page.screenshot(path="linkedin_debug.png", full_page=True)
-
-        print(page.title())
-        print(page.url)
-        print(page.content()[:2000])
         pagina_atual = 1
         while pagina_atual <= max_paginas:
             print(f"\n=== Processando página {pagina_atual} ===")

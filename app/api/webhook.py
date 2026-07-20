@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 import telebot
-
 from app.services.telegram import bot
 
 router = APIRouter()
