@@ -1,6 +1,10 @@
 from playwright.sync_api import sync_playwright
 from app.database.crud.crud_infojobs import salvar_vaga
-from app.scrapers.infojobs.filtros import safe_text, titulo_relevante, descricao_relevante
+from app.scrapers.infojobs.filtros import (
+    safe_text,
+    titulo_relevante,
+    descricao_relevante,
+)
 import time, random, os, json
 
 # Define o diretório onde os cookies da sessão serão armazenados.
@@ -13,65 +17,62 @@ def close_popups(page):
     try:
         modal = page.locator("#modalPremiumDestaque")
 
-        if modal.is_visible():
-            print("Fechando popup premium...")
+        modal.wait_for(state="visible", timeout=5000)
+        
+        close_button = page.get_by_role("link", name="Agora não")
+        close_button.click()
+        print("Fechando popup...")
 
-            close_button = page.locator(
-                "#modalPremiumDestaque button"
-            )
+    except Exception as e:
+        print(f"Erro ao fechar modal: {e}")
 
-            if close_button.count() > 0:
-                close_button.first.click()
-            else:
-                page.keyboard.press("Escape")
-
-            page.wait_for_timeout(1000)
-
-    except Exception:
-        pass
 
 def run_scraper_infojobs():
-    
     INFOJOBS_LOG = os.getenv("INFOJOBS_LOG")
+
     # Inicia o navegador utilizando uma sessão persistente.
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=True, #True para produção, False para desenvolvimento - Esse trecho faz com que a janela do google abra ou não!
-            args=["--no-sandbox"
-                  # "--start-maximized" # Usado em desenvolvimento
+            headless=True,  # True para produção, False para desenvolvimento - Esse trecho faz com que a janela do google abra ou não!
+            args=[
+                "--no-sandbox"
+                # "--start-maximized" # Usado em desenvolvimento
             ]
         )
 
+        # Verificando credenciais e criando um contexto.
         if INFOJOBS_LOG:
             context = browser.new_context(
-                storage_state=json.loads(INFOJOBS_LOG) #Variavel de ambiente usada em produção!
+                storage_state=json.loads(
+                    INFOJOBS_LOG
+                )  # Variavel de ambiente usada em produção!
             )
         else:
-            STATE_PATH = os.path.join( #Caminho absoluto usado em desenvolvimento!
-                BASE_DIR,
-                "cookies",
-                "infojobslog.json"
+            STATE_PATH = os.path.join(  # Caminho absoluto usado em desenvolvimento!
+                BASE_DIR, "cookies", "infojobslog.json"
             )
 
-            context = browser.new_context(
-                storage_state=STATE_PATH
-            )
+            context = browser.new_context(storage_state=STATE_PATH)
 
+        
         page = context.new_page()
+        page.set_default_timeout(30000)  # evita timeout de 30s padrão em ações lentas
 
-        # Acessa o InfoJobs para carregar a sessão salva.
         page.goto("https://www.infojobs.com.br/", wait_until="domcontentloaded")
-        time.sleep(5)
+        time.sleep(3)
+
+        
+        # card.evaluate("(element) => element.click()")
+        # page.wait_for_timeout(2000)
 
         # Acessa a página de vagas já filtrada com as preferências desejadas.
         page.goto(
             "https://www.infojobs.com.br/vagas-de-emprego-desenvolvimento+de+software-em-sao-paulo,-sp.aspx?categoria=74&sprd=25&splat=-23.48922&splng=-46.8059&tipocontrato=2,4,15&wo=1,2,5&im=1,4,5,6",
-            wait_until="domcontentloaded"
+            wait_until="domcontentloaded",
         )
+        page.wait_for_selector(".js_vacancyLoad", timeout=30000) # Aguarda o carregamento dos cards de vagas.
 
-        # Aguarda o carregamento dos cards de vagas.
-        page.wait_for_selector(".js_vacancyLoad", timeout=20000)
-        time.sleep(3)
+        close_popups(page) # Fechando popup
 
         cards = page.locator(".js_vacancyLoad")
 
@@ -84,22 +85,17 @@ def run_scraper_infojobs():
         for i in range(total_cards):
             try:
                 card = cards.nth(i)
-                close_popups(page)
+                # close_popups(page)
                 titulo = safe_text(card.locator(".js_vacancyTitle"))
                 if not titulo_relevante(titulo):
                     continue
 
-                # Evita bloqueio do popup
-                card.evaluate("(element) => element.click()")
-                page.wait_for_timeout(2000)
-                close_popups(page)
-                
+
                 descricao_locator = page.locator("div.text-medium").first
                 descricao_locator.wait_for(state="visible", timeout=10000)
-
                 descricao = descricao_locator.text_content()
 
-                #Prints usados para debug no terminal
+                # Prints usados para debug no terminal
                 # print("=" * 50)
                 # print(descricao[:300])  # primeiros 300 caracteres
                 # print(descricao_relevante(descricao))
@@ -112,8 +108,12 @@ def run_scraper_infojobs():
                 empresa = safe_text(card.locator("div.text-body a"))
                 localidade = safe_text(card.locator(".mb-8").first)
                 salario = safe_text(card.locator(".icon-money").locator("xpath=.."))
-                modelo_trabalho = safe_text(card.locator(".icon-buildings").locator("xpath=.."))
-                link_vaga = card.locator("a:has(h2.js_vacancyTitle)").evaluate("el => el.href")
+                modelo_trabalho = safe_text(
+                    card.locator(".icon-buildings").locator("xpath=..")
+                )
+                link_vaga = card.locator("a:has(h2.js_vacancyTitle)").evaluate(
+                    "el => el.href"
+                )
                 data = safe_text(card.locator(".small.text-nowrap"))
 
                 mensagem = (
@@ -156,7 +156,7 @@ def run_scraper_infojobs():
                 # Continua processando as demais vagas caso ocorra um erro.
                 print(f"Um erro inesperado aconteceu! {e}")
 
-        time.sleep(5)
+        time.sleep(3)
 
         # Encerra o navegador.
         browser.close()
