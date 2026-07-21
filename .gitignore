@@ -9,7 +9,7 @@ __pycache__/
 
 *.db
 
-core/
+app/core/
 cookies/
 **/cookies/
 storage_state.json
