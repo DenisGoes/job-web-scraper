@@ -1,4 +1,4 @@
-from app.scrapers.linkdin.scraper import run_scraper_linkdin
+from app.scrapers.linkedin.scraper import run_scraper_linkdin
 from app.services.telegram import enviar_novas_vagas
 
 

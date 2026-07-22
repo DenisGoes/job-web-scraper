@@ -1,0 +1,37 @@
+Projeto
+├── app
+│   ├── api
+│   │   └── webhook.py
+│   ├── core
+│   │   └── scheduler.py
+│   ├── database
+│   │   ├── connection.py
+│   │   ├── crud
+│   │   │   ├── crud_infojobs.py
+│   │   │   └── crud_linkedin.py
+│   │   └── model.py
+│   ├── docs
+│   │   ├── imagens
+│   │   ├── scheduler.md
+│   │   └── videos
+│   ├── main.py
+│   ├── scrapers
+│   │   ├── infojobs
+│   │   │   ├── cookies
+│   │   │   ├── filtros.py
+│   │   │   ├── login.py
+│   │   │   └── scraper.py
+│   │   └── linkedin
+│   │       ├── cookies
+│   │       ├── filtros.py
+│   │       ├── login.py
+│   │       └── scraper.py
+│   ├── scripts
+│   │   ├── create_database.py
+│   │   ├── run_infojobs.py
+│   │   └── run_linkedin.py
+│   └── services
+│       └── telegram.py
+├── estrutura_projeto.txt
+├── README.md
+└── requirements.txt

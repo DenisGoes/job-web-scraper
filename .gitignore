@@ -1,6 +1,7 @@
 venv/
 .env
-docs/
+.env.example
+# docs/
 
 
 __pycache__/
@@ -23,6 +24,7 @@ test-results/
 *.log
 
 .vscode/
+
 
 
 telegram_bot/bot.py

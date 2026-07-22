@@ -1,278 +1,248 @@
-# Nome do Projeto
+# job web scraper
 
-![Status](https://img.shields.io/badge/status-Em%20Desenvolvimento-blue)
-![Python](https://img.shields.io/badge/Python-3.13-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+<!--Badges -->
 
-> Breve descrição do projeto em uma frase.
+> Job web scraper é um sistema de busca de vagas de emprego que utiliza web scraping para coletar oportunidades de diferentes fontes.
 
----
+## 📌 Sobre
+Este sistema busca resolver o problema de pesquisar oportunidades de emprego manualmente em diferentes plataformas. Utilizando técnicas de web scraping, automatizando, coletando e centralizando essas vagas.
 
-# 📌 Sobre
+Ele pode ser Utilizado por qualquer pessoa que busca uma oportunidade profissional. As vagas podem ser filtradas por cargos e outros critérios, tornando a busca eficiente, independente da área de atuação do usuário.
 
-Explique rapidamente:
+Tem por objetivo, diminuir o tempo gasto pesquisa de vagas, automatizando todo o processo e reunindo as oportunidades em um canal do Telegram, permitindo que o usuário acompanhe novas vagas de qualquer lugar.
 
-- Qual problema resolve.
-- Quem utiliza.
-- Qual o objetivo.
-- Por que foi criado.
+O projeto foi criado para solucionar um problema pessoal: o tempo excessivo gasto procurando oportunidades de emprego manualmente em diversas fontes. A partir desse problema, surgiu a ideia de desenvolver um ferramenta que tornasse esse processo rápido, prático e organizado.
 
-Exemplo:
 
-O DevPower Books é uma plataforma para gerenciamento de livros voltados ao desenvolvimento pessoal, programação e tecnologia, permitindo organizar leituras, acompanhar progresso e recomendar conteúdos.
+## 📷 Demonstração
 
----
+Iniciando scraper
+![Iniciando scraper](./app/docs/imagens/demonst_Ini_linkedin.png)
 
-# ✨ Funcionalidades
+Enviando notificação ao Telegram
+![Enviando notificação ao Telegram](./app/docs/imagens/demonst_notif_telegram.png)
 
-- Login
-- Cadastro de usuários
-- Dashboard
-- Pesquisa
-- CRUD completo
-- Upload de arquivos
+Marcada como Aplicada
+![Marcada como Aplicada](./app/docs/imagens/demonst_aplicada_telegram.png)
+
+Marcada como Salva
+![Marcada como Salva](./app/docs/imagens/demonst_salva_telegram.png)
+
+<!-- ## 🏗 Arquitetura
+
+--- -->
+
+## ✨ Funcionalidades
+- Realizar Login
+- Persistir a sessão de login
+- Filtrar vagas por palavras-chave
+- Buscar vagas em diferentes fontes
 - API REST
-- Responsivo
+- Salvar vagas no banco de dados
+- Enviar vagas automaticamente para um canal do Telegram
+- Botões funcionais de **Rejeitada**, **Aplicada** ou **Salva** diretamente no telegram
+- Enviar notificações a cada nova vaga enviada ao Telegram
 
----
 
-# 📷 Demonstração
+## 🛠 Tecnologias
+- Python - Linguagem principal do projeto
+- FastAPI - Desenvolvimento da API REST
+- Playwright - Automação do navegador e web scraping
+- PostgreSQL - Armazenamento das vagas
+- SQLAlchemy - ORM para comunicação com o banco de dados
+- Telegram Bot API - Envio de vagas e interação com os usuários no Telegram
+- GitHub Actions - Automação da execução do scraper e integração contínua
 
-Coloque prints ou GIFs.
+## 📂 Estrutura do Projeto
 
-```
-/docs/images/home.png
-/docs/images/dashboard.png
-```
-
-ou
-
-```
-https://youtube...
-```
-
----
-
-# 🏗 Arquitetura
-
-```
-Usuário
-
-↓
-
-Frontend
-
-↓
-
-API
-
-↓
-
-Banco de Dados
-```
-
----
-
-# 🛠 Tecnologias
-
-### Front-end
-
-- HTML
-- CSS
-- JavaScript
-
-### Back-end
-
-- Python
-- FastAPI
-
-### Banco
-
-- PostgreSQL
-
-### Ferramentas
-
-- Git
-- Docker
-- VSCode
-
----
-
-# 📂 Estrutura do Projeto
-
-```
+```markdown
 Projeto
-
-frontend/
-
-backend/
-
-database/
-
-docs/
-
-tests/
-
-README.md
+├── app
+│   ├── api
+│   │   └── webhook.py
+│   ├── core
+│   │   └── scheduler.py
+│   ├── database
+│   │   ├── connection.py
+│   │   ├── crud
+│   │   │   ├── crud_infojobs.py
+│   │   │   └── crud_linkedin.py
+│   │   └── model.py
+│   ├── docs
+│   │   ├── imagens
+│   │   ├── scheduler.md
+│   │   └── videos
+│   ├── main.py
+│   ├── scrapers
+│   │   ├── infojobs
+│   │   │   ├── cookies
+│   │   │   ├── filtros.py
+│   │   │   ├── login.py
+│   │   │   └── scraper.py
+│   │   └── linkedin
+│   │       ├── cookies
+│   │       ├── filtros.py
+│   │       ├── login.py
+│   │       └── scraper.py
+│   ├── scripts
+│   │   ├── create_database.py
+│   │   ├── run_infojobs.py
+│   │   └── run_linkedin.py
+│   └── services
+│       └── telegram.py
+├── estrutura_projeto.txt
+├── README.md
+└── requirements.txt
 ```
 
----
+## ⚙ Deploy
 
-# ⚙ Instalação
+- GitHub - Usado para hospedar os Scrapers, usando cron, rodando de hora em hora
+- Render - Usado para hospedar a API
+- Supabase - Usado para hospedar o banco de dados
+*Para uma melhor experiência, contrate um serviço de hospedagem pago!*
+
+## 🚀 Como usar
+
+### 1. Configurar o Telegram
+
+1. Baixe o Telegram em seu smartphone ou utilize a versão Web/Desktop.
+2. Crie uma conta ou faça login.
+3. Pesquise por **@BotFather** e inicie uma conversa.
+4. Execute o comando `/newbot`.
+5. Escolha um nome e um **username** para o bot.
+6. Ao final, o BotFather fornecerá um **Token de Acesso**. Guarde esse token.
+7. Crie um canal no Telegram.
+8. Adicione o bot criado como **Administrador** do canal, concedendo permissão para enviar mensagens.
+9. Obtenha o **ID do canal** (utilizado pelo sistema para enviar as vagas).
+
+### 1.1 Obter o id do Canal
+1. Envie uma mensagem no canal
+2. Abra o navegador e acesse: https://api.telegram.org/bot<SEU_TOKEN>/getUpdates
+3. Na resposta JSON, procure pelo campo chat id.
+
+### 2. Configurar as variáveis de ambiente
+
+Crie um arquivo `.env` na raiz do projeto e preencha as variáveis conforme o exemplo abaixo:
+
+```env
+# Caminho do Banco de dados
+DATABASE_URL=
+
+# Telegram
+API_TOKEN=
+CANAL_ID=
+
+# Cookies de sessão do InfoJobs para login
+INFOJOBS_LOG=
+
+# Cookies de sessão do LinkedIn para login 
+LINKEDIN_LOG=
+```
+
+> Observação 1: Substitua os valores pelas credenciais e identificadores obtidos durante a configuração.
+
+> Observação 2: Para gerar os cookies de sessão do InfoJobs ou LinkedIn, execute o arquivo login.py da respectiva plataforma. O navegador será aberto para que você realize o login manualmente utilizando seu e-mail e senha. Após concluir o login, retorne ao terminal e pressione Enter. O sistema irá gerar automaticamente um arquivo .json contendo os cookies da sessão autenticada.
+
+> Observação 3: Adicione o arquivo .json gerado ao .gitignore para evitar o envio de informações de autenticação ao repositório. Em seguida, informe o caminho desse arquivo nas variáveis INFOJOBS_LOG e LINKEDIN_LOG do arquivo .env.
+
+### 3. Configurar o sistema
 
 Clone o projeto
+```markdown
 
-```bash
-git clone https://github.com/seuusuario/projeto.git
-```
-
-Entre na pasta
-
-```bash
-cd projeto
 ```
 
 Crie o ambiente virtual
-
-```bash
-python -m venv .venv
+```markdown
+python -m venv venv
 ```
 
-Ative
+Ative <br>
 
-Windows
-
-```bash
-.venv\Scripts\activate
+Windowns
+```markdown
+venv\Scripts\activate
 ```
 
 Linux
-
-```bash
-source .venv/bin/activate
+```markdown
+source venv/bin/activate
 ```
 
 Instale as dependências
-
 ```bash
 pip install -r requirements.txt
 ```
 
-Execute
+Crie o banco de dados:
+
+```bash
+python -m app.scripts.create_database
+```
+
+Inicie a API:
+
+```bash
+fastapi dev app.main
+```
+
+ou
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
----
+### 4. Executar os scrapers
 
-# 🚀 Como usar
-
-1. Faça login
-2. Cadastre um usuário
-3. Utilize o Dashboard
-4. Teste as funcionalidades
-
----
-
-# 📖 Documentação
-
-A documentação completa está em
-
-```
-docs/
-```
-
-Inclui:
-
-- Engenharia de Software
-- Requisitos
-- Casos de Uso
-- Banco de Dados
-- Diagramas
-- Testes
-- Arquitetura
-
----
-
-# 🧪 Testes
-
-Executar
+**InfoJobs**
 
 ```bash
-pytest
+python -m app.scripts.run_infojobs
 ```
 
----
+**LinkedIn**
 
-# 🔒 Segurança
-
-- JWT
-- Hash de senhas
-- HTTPS
-- Controle de permissões
-- Logs
-
----
-
-# 📈 Roadmap
-
-- [x] Login
-- [x] Dashboard
-- [x] CRUD
-- [ ] Docker
-- [ ] Deploy
-- [ ] Aplicativo Mobile
-- [ ] IA
-
----
-
-# 🤝 Contribuindo
-
-1. Fork
-
-2. Crie uma branch
-
-```
-git checkout -b feature/minha-feature
+```bash
+python -m app.scripts.run_linkedin
 ```
 
-3. Commit
+Após a execução, as vagas encontradas serão:
 
+* armazenadas no banco de dados;
+* disponibilizadas pela API;
+* enviadas automaticamente para o canal do Telegram configurado.
+
+## 📖 Documentação
+
+A documentação completa está em: 
+```markdown
+docs/
 ```
-git commit -m "Nova feature"
-```
+Inclui:
+- Imagens
+- Videos <br>
+*A documentação se encontra em desenvolvimento!*
 
-4. Push
+<!-- ## 🤝 Contribuindo -->
 
-```
-git push origin feature/minha-feature
-```
+## 👨‍💻 Autor
 
-5. Abra um Pull Request
+**Denis Goes**
+GitHub: https://github.com/DenisGoes
 
----
+<!-- Portfólio:  -->
 
-# 👨‍💻 Autor
+## 📄 Licença
+*Este projeto está licenciado sob a licença MIT.* 
 
-José Santos
+## Aviso
+*Este projeto foi desenvolvido para fins educacionais e de estudo sobre automação e web scraping. O uso da ferramenta deve respeitar os termos de uso e as políticas das plataformas acessadas. O autor não se responsabiliza pelo uso inadequado do software.*
 
-GitHub:
+## Agradecimentos
 
-LinkedIn:
+Obrigado por utilizar o Job Web Scraper!
 
-Portfólio:
+Este projeto foi desenvolvido com o objetivo de facilitar a busca por oportunidades de emprego e, ao mesmo tempo, servir como um projeto de estudo e evolução contínua.
 
----
-
-# 📄 Licença
-
-MIT License
-
-
-Documentação: 
-
-telebot https://pytba.readthedocs.io/en/latest/?utm_source.com
-play https://playwright.dev/python/docs/intro
-aps s https://apscheduler.readthedocs.io/en/latest/#
-https://docs.sqlalchemy.org/en/20/orm/quickstart.html 
+Toda sugestão, relato de problemas, ideias de melhorias ou contribuição é muito bem-vinda. Se este projeto foi útil para você, considere deixar uma ⭐ no repositório para apoiar seu desenvolvimento.

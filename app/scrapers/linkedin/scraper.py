@@ -1,6 +1,6 @@
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 from app.database.crud.crud_linkedin import salvar_vaga
-from app.scrapers.linkdin.filtros import (
+from app.scrapers.linkedin.filtros import (
     safe_text,
     titulo_relevante,
     descricao_relevante,
