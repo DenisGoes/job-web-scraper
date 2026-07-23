@@ -16,17 +16,23 @@ O projeto foi criado para solucionar um problema pessoal: o tempo excessivo gast
 
 ## 📷 Demonstração
 
-Iniciando scraper
-![Iniciando scraper](./app/docs/imagens/demonst_Ini_linkedin.png)
+> 🎥 **Vídeo completo:** [Assistir ao vídeo](./app/docs/videos/demonstracao_job_scraper.mp4)
 
-Enviando notificação ao Telegram
-![Enviando notificação ao Telegram](./app/docs/imagens/demonst_notif_telegram.png)
+### Iniciando o scraper
+![Iniciando o scraper](./app/docs/gifs/demonst_ini.gif)
 
-Marcada como Aplicada
-![Marcada como Aplicada](./app/docs/imagens/demonst_aplicada_telegram.png)
+### Acessando a página de vagas
+![Acessando a página de vagas](./app/docs/gifs/demonst_ini_pt2.gif)
 
-Marcada como Salva
-![Marcada como Salva](./app/docs/imagens/demonst_salva_telegram.png)
+### Executando o scraper
+![Executando o scraper](./app/docs/gifs/demonst_run.gif)
+
+### Enviando notificações para o Telegram
+![Enviando notificações para o Telegram](./app/docs/gifs/demonst_not_telegram.gif)
+
+### Visualizando as vagas no Telegram
+![Visualizando as vagas no Telegram](./app/docs/gifs/demonst_telegram.gif)
+
 
 <!-- ## 🏗 Arquitetura
 
@@ -52,6 +58,9 @@ Marcada como Salva
 - SQLAlchemy - ORM para comunicação com o banco de dados
 - Telegram Bot API - Envio de vagas e interação com os usuários no Telegram
 - GitHub Actions - Automação da execução do scraper e integração contínua
+
+## Versões
+
 
 ## 📂 Estrutura do Projeto
 
@@ -148,10 +157,10 @@ LINKEDIN_LOG=
 
 ### 3. Configurar o sistema
 
-Clone o projeto
+<!-- Clone o projeto
 ```markdown
 
-```
+``` -->
 
 Crie o ambiente virtual
 ```markdown
@@ -229,6 +238,7 @@ Inclui:
 ## 👨‍💻 Autor
 
 **Denis Goes**
+
 GitHub: https://github.com/DenisGoes
 
 <!-- Portfólio:  -->
