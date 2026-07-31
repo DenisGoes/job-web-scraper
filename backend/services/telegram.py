@@ -1,9 +1,8 @@
-# from fastapi import FastAPI
 from telebot.util import quick_markup
 from telebot.apihelper import ApiTelegramException
 from dotenv import load_dotenv
-from app.database.connection import SessionLocal
-from app.database.model import Vaga
+from backend.database.connection import SessionLocal
+from backend.database.model import Vaga
 from datetime import datetime, UTC
 import os
 import telebot

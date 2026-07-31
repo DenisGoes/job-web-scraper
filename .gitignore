@@ -1,7 +1,5 @@
 venv/
 .env
-.env.example
-# docs/
 
 
 __pycache__/
@@ -10,7 +8,7 @@ __pycache__/
 
 *.db
 
-app/core/
+backend/core/
 cookies/
 **/cookies/
 storage_state.json
@@ -19,6 +17,17 @@ auth.json
 
 playwright-report/
 test-results/
+
+latex
+test.py
+
+frontend/*
+
+requirements.md
+scheduler.md
+
+
+.Dockerfile
 
 
 *.log

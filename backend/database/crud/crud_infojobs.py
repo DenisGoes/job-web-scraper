@@ -1,5 +1,5 @@
-from app.database.connection import SessionLocal
-from app.database.model import Vaga
+from backend.database.connection import SessionLocal
+from backend.database.model import Vaga
 
 
 # Salva uma nova vaga no banco de dados.
@@ -16,6 +16,7 @@ def salvar_vaga(
     link_vaga,
     data_publicacao,
     mensagem,
+    descricao
 ):
     # Cria uma nova sessão de conexão com o banco de dados.
     session = SessionLocal()
@@ -39,7 +40,8 @@ def salvar_vaga(
             modelo_trabalho=modelo_trabalho,
             link_vaga=link_vaga,
             data_publicacao=data_publicacao,
-            mensagem=mensagem
+            mensagem=mensagem,
+            descricao=descricao
         )
 
         # Adiciona a vaga à sessão e confirma a transação.

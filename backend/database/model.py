@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime
-from app.database.connection import Base
+from backend.database.connection import Base
 
 
 # Modelo que representa a tabela de vagas no banco de dados.
@@ -17,7 +17,7 @@ class Vaga(Base):
     localidade = Column(String)
     salario = Column(String)
     modelo_trabalho = Column(String)
-    # descricao = Column(String)
+    descricao = Column(String)
     data_publicacao = Column(String)
     link_vaga = Column(String, unique=True, nullable=False)
     mensagem = Column(Text)

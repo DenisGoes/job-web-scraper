@@ -1,15 +1,15 @@
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from dotenv import load_dotenv
 import os
-
-from app.api.webhook import router as webhook_router
-from app.services.telegram import bot
+from backend.api.webhook import router as webhook_router
+from backend.services.telegram import bot
 
 
 load_dotenv()
 
+
+API_TOKEN = os.getenv("API_TOKEN")
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 
@@ -43,7 +43,16 @@ def health_check():
 @app.get("/")
 def root():
     return {"status": "API online"}
-# WEBHOOK_URL = ( # Usada em desenvolvimento e testes locais
-#     f"https://dazzling-destitute-fragrance.ngrok-free.dev"
-#     f"/webhook/{API_TOKEN}"
+
+
+
+
+# DESENVOLVIMENTO LOCAL
+# Rodando localmente com ngrok
+
+# ngrok http 8000
+# https://xxxxx.ngrok-free.dev
+# WEBHOOK_URL = (
+#     "https://dazzling-destitute-fragrance.ngrok-free.dev"
+#     f"/webhook/dev/{API_TOKEN}"
 # )

@@ -1,37 +1,41 @@
-Projeto
-├── app
-│   ├── api
-│   │   └── webhook.py
-│   ├── core
-│   │   └── scheduler.py
-│   ├── database
-│   │   ├── connection.py
-│   │   ├── crud
-│   │   │   ├── crud_infojobs.py
-│   │   │   └── crud_linkedin.py
-│   │   └── model.py
-│   ├── docs
-│   │   ├── imagens
-│   │   ├── scheduler.md
-│   │   └── videos
-│   ├── main.py
-│   ├── scrapers
-│   │   ├── infojobs
-│   │   │   ├── cookies
-│   │   │   ├── filtros.py
-│   │   │   ├── login.py
-│   │   │   └── scraper.py
-│   │   └── linkedin
-│   │       ├── cookies
-│   │       ├── filtros.py
-│   │       ├── login.py
-│   │       └── scraper.py
-│   ├── scripts
-│   │   ├── create_database.py
-│   │   ├── run_infojobs.py
-│   │   └── run_linkedin.py
-│   └── services
-│       └── telegram.py
+.
+├── analisador_curriculo
+│   ├── api
+│   ├── output
+│   └── prompts
+├── backend
+│   ├── api
+│   ├── core
+│   ├── database
+│   ├── __init__.py
+│   ├── main.py
+│   ├── __pycache__
+│   ├── scrapers
+│   ├── scripts
+│   └── services
+├── docker-compose.yml
+├── Dockerfile
+├── docs
+│   ├── gifs
+│   ├── imagens
+│   ├── requirements.md
+│   ├── scheduler.md
+│   └── videos
 ├── estrutura_projeto.txt
+├── frontend
+│   ├── index.html
+│   ├── js
+│   └── styles
+├── latex
+├── LICENSE
 ├── README.md
-└── requirements.txt
+├── requirements.txt
+├── test.py
+└── venv
+    ├── bin
+    ├── include
+    ├── lib
+    ├── lib64 -> lib
+    └── pyvenv.cfg
+
+25 directories, 14 files

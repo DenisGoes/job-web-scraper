@@ -1,6 +1,6 @@
 from playwright.sync_api import sync_playwright
-from app.database.crud.crud_infojobs import salvar_vaga
-from app.scrapers.infojobs.filtros import (
+from backend.database.crud.crud_infojobs import salvar_vaga
+from backend.scrapers.fontes.infojobs.filtros import (
     safe_text,
     titulo_relevante,
     descricao_relevante,
@@ -150,6 +150,7 @@ def run_scraper_infojobs():
                     link_vaga=link_vaga,
                     data_publicacao=data,
                     mensagem=mensagem,
+                    descricao=descricao,
                 )
 
             except Exception as e:

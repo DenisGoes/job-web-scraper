@@ -1,6 +1,6 @@
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-from app.database.crud.crud_linkedin import salvar_vaga
-from app.scrapers.linkedin.filtros import (
+from backend.database.crud.crud_linkedin import salvar_vaga
+from backend.scrapers.fontes.linkedin.filtros import (
     safe_text,
     titulo_relevante,
     descricao_relevante,
@@ -112,6 +112,7 @@ def process_current_page(page):
                 link_vaga=link_vaga,
                 data_publicacao=data,
                 mensagem=mensagem,
+                descricao=descricao,
             )
 
         except Exception as e:

@@ -5,7 +5,7 @@ import os
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL") #Caminho do Banco de dados. Definido no .env
 
 engine = create_engine(DATABASE_URL)
 
