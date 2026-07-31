@@ -34,7 +34,7 @@ jobs:
           API_TOKEN: ${{ secrets.API_TOKEN }}
           CANAL_ID: ${{ secrets.CANAL_ID }}
           INFOJOBS_LOG: ${{ secrets.INFOJOBS_LOG }}
-        run: python -m app.scripts.run_infojobs
+        run: python -m backend.scripts.run_infojobs
 
   linkedin:
     name: Scraper LinkedIn
@@ -64,4 +64,4 @@ jobs:
           API_TOKEN: ${{ secrets.API_TOKEN }}
           CANAL_ID: ${{ secrets.CANAL_ID }}
           LINKEDIN_LOG: ${{ secrets.LINKEDIN_LOG }}
-        run: python -m app.scripts.run_linkedin
+        run: python -m backend.scripts.run_linkedin
