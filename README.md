@@ -16,22 +16,22 @@ O projeto foi criado para solucionar um problema pessoal: o tempo excessivo gast
 
 ## 📷 Demonstração
 
-> 🎥 **Vídeo completo:** [Assistir ao vídeo](./app/docs/videos/demonstracao_job_scraper.mp4)
+> 🎥 **Vídeo completo:** [Assistir ao vídeo](./docs/videos/demonstracao_job_scraper.mp4)
 
 ### Iniciando o scraper
-![Iniciando o scraper](./app/docs/gifs/demonst_ini.gif)
+![Iniciando o scraper](./docs/gifs/demonst_ini.gif)
 
 ### Acessando a página de vagas
-![Acessando a página de vagas](./app/docs/gifs/demonst_ini_pt2.gif)
+![Acessando a página de vagas](./docs/gifs/demonst_ini_pt2.gif)
 
 ### Executando o scraper
-![Executando o scraper](./app/docs/gifs/demonst_run.gif)
+![Executando o scraper](./docs/gifs/demonst_run.gif)
 
 ### Enviando notificações para o Telegram
-![Enviando notificações para o Telegram](./app/docs/gifs/demonst_not_telegram.gif)
+![Enviando notificações para o Telegram](./docs/gifs/demonst_not_telegram.gif)
 
 ### Visualizando as vagas no Telegram
-![Visualizando as vagas no Telegram](./app/docs/gifs/demonst_telegram.gif)
+![Visualizando as vagas no Telegram](./docs/gifs/demonst_telegram.gif)
 
 
 <!-- ## 🏗 Arquitetura
