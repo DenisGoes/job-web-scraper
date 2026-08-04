@@ -20,7 +20,7 @@ api_key = os.getenv("GEMINI_API_KEY")
 # Inicializa o cliente da API nova
 client = genai.Client(api_key=api_key)
 
-vaga=buscar_descricao_vaga(9) #Descrição da vaga.
+vaga=buscar_descricao_vaga() #Descrição da vaga.        
 if vaga is None:
     print("Vaga não encontrada.")
     exit()
@@ -59,12 +59,14 @@ Nunca incentive mentiras.
 
 ---
 Vaga:
-# TITULO DA VAGA: {vaga['titulo']}
+# TITULO DA VAGA: 
+{vaga['titulo']}
 
 
 
 # DESCRIÇÃO DA VAGA: 
 {vaga['descricao']}
+
 
 
 ---
