@@ -157,7 +157,7 @@ def run_scraper_linkdin(max_paginas=4):
 
         # Acessa a página de vagas já filtrada com as preferências desejadas.
         page.goto(
-            "https://www.linkedin.com/jobs/search/?currentJobId=4441999555&distance=10&f_E=1%2C2%2C3&f_JT=F%2CP%2CC%2CI%2CO&f_TPR=r604800&geoId=104746682&keywords=desenvolvedor&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true&sortBy=R",
+            "https://www.linkedin.com/jobs/search/?currentJobId=4448035104&distance=25&f_E=1%2C2%2C3&f_JT=F%2CP%2CC%2CI%2CO&f_TPR=r604800&f_WT=2%2C1%2C3&geoId=104746682&keywords=desenvolvedor&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true&sortBy=R",
             wait_until="domcontentloaded",
         )
 
