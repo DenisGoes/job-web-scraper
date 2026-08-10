@@ -3,7 +3,7 @@ from telebot.apihelper import ApiTelegramException
 from dotenv import load_dotenv
 from backend.database.connection import SessionLocal
 from backend.database.model import Vaga
-from datetime import datetime, UTC
+from datetime import datetime, timedelta, UTC
 import os
 import telebot
 import time
@@ -15,6 +15,7 @@ API_TOKEN = os.getenv("API_TOKEN")
 CANAL_ID = os.getenv("CANAL_ID")
 
 bot = telebot.TeleBot(API_TOKEN)
+
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback(call):
@@ -29,45 +30,34 @@ def callback(call):
         if vaga:
             if acao == "salva":
                 vaga.status = "salva"
-                vaga.data_salva = datetime.now(UTC) #Registra data e hora atual
-                    
+                vaga.remover_em = datetime.now(UTC) + timedelta(days=3)  # Registra data e hora atual
+
                 session.commit()
-                bot.answer_callback_query(
-                    call.id,
-                    f"Vaga marcada como {acao}"
-                )
+                bot.answer_callback_query(call.id, f"Vaga marcada como {acao}")
 
             elif acao == "aplicada":
                 vaga.status = "aplicada"
-                vaga.data_aplicada = datetime.now(UTC) #Registra data e hora atual
+                vaga.remover_em = datetime.now(UTC) + timedelta(days=7)  # Registra data e hora atual
 
                 session.commit()
 
-                bot.answer_callback_query(
-                    call.id,
-                    f"Vaga marcada como {acao}"
-                )
+                bot.answer_callback_query(call.id, f"Vaga marcada como {acao}")
 
             elif acao == "rejeitada":
-
+                vaga.status = "rejeitada"
+                vaga.remover_em = datetime.now(UTC) + timedelta(days=3)
                 # Só tenta deletar a mensagem se o ID existir de fato.
                 if vaga.telegram_message_id:
                     try:
-                        bot.delete_message(
-                            CANAL_ID,
-                            vaga.telegram_message_id
-                        )
+                        bot.delete_message(CANAL_ID, vaga.telegram_message_id)
                     except ApiTelegramException as e:
                         print(f"Erro ao deletar mensagem: {e}")
                 else:
-                    print(f"Vaga {vaga.id} não possui telegram_message_id, pulando exclusão da mensagem.")
+                    print(
+                        f"Vaga {vaga.id} não possui telegram_message_id, pulando exclusão da mensagem."
+                    )
 
-                session.delete(vaga)
-                session.commit()
-
-                bot.answer_callback_query(call.id, "Vaga rejeitada")
-
-    
+                bot.answer_callback_query(call.id, "Vaga marcada como {acao}")
 
     except Exception:
         traceback.print_exc()
@@ -75,29 +65,24 @@ def callback(call):
     finally:
         session.close()
 
+
 # Envia uma vaga para o canal do Telegram, com retry automático
 # em caso de rate limit (429). Retorna True se enviou com sucesso.
 def enviar_vaga(vaga, max_tentativas=3):
 
-    markup = quick_markup({
-        '✅ Aplicada': {
-                'callback_data': f'aplicada:{vaga.id}'
+    markup = quick_markup(
+        {
+            "✅ Aplicada": {"callback_data": f"aplicada:{vaga.id}"},
+            "⭐ Salva": {"callback_data": f"salva:{vaga.id}"},
+            "❌ Rejeitada": {"callback_data": f"rejeitada:{vaga.id}"},
         },
-        '⭐ Salva': {
-                'callback_data': f'salva:{vaga.id}'
-        },
-        '❌ Rejeitada': {
-            'callback_data': f'rejeitada:{vaga.id}'
-        }
-    }, row_width=2)
+        row_width=2,
+    )
 
     for tentativa in range(max_tentativas):
         try:
             message = bot.send_message(
-                CANAL_ID,
-                vaga.mensagem,
-                reply_markup=markup,
-                parse_mode="HTML"
+                CANAL_ID, vaga.mensagem, reply_markup=markup, parse_mode="HTML"
             )
 
             vaga.telegram_message_id = message.message_id
@@ -106,7 +91,9 @@ def enviar_vaga(vaga, max_tentativas=3):
         except ApiTelegramException as e:
             if e.error_code == 429:
                 retry_after = e.result_json.get("parameters", {}).get("retry_after", 5)
-                print(f"Rate limit atingido (vaga {vaga.id}). Aguardando {retry_after}s...")
+                print(
+                    f"Rate limit atingido (vaga {vaga.id}). Aguardando {retry_after}s..."
+                )
                 time.sleep(retry_after + 1)
             else:
                 print(f"Erro ao enviar vaga {vaga.id}: {e}")
@@ -114,6 +101,7 @@ def enviar_vaga(vaga, max_tentativas=3):
 
     print(f"Falha ao enviar vaga {vaga.id} após {max_tentativas} tentativas.")
     return False
+
 
 # Busca todas as vagas novas e as envia ao Telegram,
 # uma de cada vez, respeitando o rate limit do Telegram.
