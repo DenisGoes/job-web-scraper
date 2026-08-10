@@ -119,7 +119,7 @@ def process_current_page(page):
             print(f"Um erro inesperado aconteceu no card {i}: {e}")
 
 
-def run_scraper_linkdin(max_paginas=4):
+def run_scraper_linkdin(max_paginas=2):
     LINKEDIN_LOG = os.getenv("LINKEDIN_LOG")
 
     with sync_playwright() as p:
