@@ -23,9 +23,7 @@ class Vaga(Base):
     mensagem = Column(Text)
 
     status = Column(String, default="nova")
-    data_salva = Column(DateTime, nullable=True)
-    data_aplicada = Column(DateTime, nullable=True)
+    remover_em = Column(DateTime, nullable=True)
     ultimo_lembrete = Column(DateTime, nullable=True)
-
     telegram_message_id = Column(Integer)
 
