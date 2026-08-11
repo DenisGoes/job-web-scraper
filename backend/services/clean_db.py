@@ -7,18 +7,18 @@ def clean_dados():
     agora = datetime.now(UTC)
     with SessionLocal() as session:
         try:
-            Vaga = session.execute(
+            vagas = session.execute(
                 select(Vaga).where(Vaga.remover_em <= agora)
             ).scalars().all()
 
-            if Vaga:
-                for Vaga in Vaga:
-                    session.delete(Vaga)
+            if vagas:
+                for vaga in vagas:
+                    session.delete(vaga)
 
                 session.commit()
 
-            return len(Vaga)
+            return len(vagas)
 
-        except Exception as e:
+        except Exception:
             session.rollback()
             raise
