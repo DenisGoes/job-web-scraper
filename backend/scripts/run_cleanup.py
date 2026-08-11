@@ -5,5 +5,5 @@ if __name__ == "__main___":
 
     print(
         f"Limpeza concluída. "
-        f"{quantidade} notícia(s) removida(s)"
+        f"{quantidade} vaga(s) removida(s)"
     )
