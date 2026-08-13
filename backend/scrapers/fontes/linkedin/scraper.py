@@ -19,7 +19,7 @@ def scroll_current_page(page, times=5):
     print("Executando scroll...")
 
     try:
-        cards = page.locator("[data-job-id]")
+        cards = page.locator('div[role="button"][componentkey^="job-card-component-ref-"]')
         quantidade = cards.count()
         print(f"Cards encontrados antes do scroll: {quantidade}")
 
@@ -42,63 +42,45 @@ def scroll_current_page(page, times=5):
 # Processa todos os cards de vaga carregados na página atual.
 def process_current_page(page):
     try:
-        page.wait_for_selector("[data-job-id]", timeout=20000)
+        page.wait_for_selector('button[data-testid="pagination-controls-next-button-visible"]', timeout=20000)
     except PlaywrightTimeoutError:
         print("Nenhum card de vaga carregou.")
         return
     time.sleep(3)
 
-    cards = page.locator("[data-job-id]")
+    cards = page.locator('div[role="button"][componentkey^="job-card-component-ref-"]')
     total_cards = cards.count()
     print(f"  -> {total_cards} vagas encontradas nesta página")
 
     for i in range(total_cards):
         try:
             card = cards.nth(i)
+
+            componentkey = card.get_attribute("componentkey")
+
+            if not componentkey:
+                print(f"Card {i} não possui componentkey.")
+                continue
+
+            vaga_id = componentkey.replace("job-card-component-ref-", "",)
+
             card.scroll_into_view_if_needed()
             time.sleep(random.uniform(0.5, 1.0))
-            titulo = safe_text(card.locator("a[data-control-id] strong"))
+            titulo = safe_text(card.locator("span[aria-hidden='true']").first)
 
             if not titulo_relevante(titulo):
                 continue
 
-            card.click()
-            page.locator("#job-details").wait_for()
-
-            descricao = page.locator("#job-details .mt4").text_content()
-            # print("=" * 50) #Usado para debug
-            # print(descricao[:300])  # primeiros 300 caracteres #Usado para debug
-            # print(descricao_relevante(descricao)) #Usado para debug
-
-            if not descricao_relevante(descricao):
-                continue
-
-            vaga_id = card.get_attribute("data-job-id")
-            empresa = safe_text(
-                card.locator(".lhTrJwLJdNHzUTaZGzxGMSDIlaANTfgvhPQTuoU")
-            )
-            localidade = safe_text(card.locator("li span[dir='ltr']").first)
-            data = safe_text(card.locator("time"))
-            if data == "N/A":
-                data = "Promovida"
-
-            link_vaga = card.locator("a[data-control-id]").get_attribute("href")
-            link_vaga = "https://www.linkedin.com" + link_vaga if link_vaga else "N/A"
+            link_vaga = (f"https://www.linkedin.com/jobs/view/{vaga_id}/")
 
             mensagem = (
                 "🔥 <b>Nova vaga no LinkedIn!</b>\n\n"
                 f"📌 <b>{titulo}</b>\n"
-                f"🏢 {empresa}\n"
-                f"📍 {localidade}\n"
-                f"📅 {data}\n"
                 f"🔗 {link_vaga}"
             )
 
             print(f"""
                 Titulo: {titulo}
-                Empresa: {empresa}
-                Localidade: {localidade}
-                Data publicação: {data}
                 Link: {link_vaga}
                 Salvando vaga no banco... {vaga_id}
             """)
@@ -107,19 +89,15 @@ def process_current_page(page):
                 vaga_id=vaga_id,
                 fonte="linkedin",
                 titulo=titulo,
-                empresa=empresa,
-                localidade=localidade,
                 link_vaga=link_vaga,
-                data_publicacao=data,
                 mensagem=mensagem,
-                descricao=descricao,
             )
 
         except Exception as e:
             print(f"Um erro inesperado aconteceu no card {i}: {e}")
 
 
-def run_scraper_linkdin(max_paginas=2):
+def run_scraper_linkdin(max_paginas=1):
     LINKEDIN_LOG = os.getenv("LINKEDIN_LOG")
 
     with sync_playwright() as p:
@@ -168,7 +146,7 @@ def run_scraper_linkdin(max_paginas=2):
             scroll_current_page(page)
             process_current_page(page)
 
-            next_button = page.locator("button.jobs-search-pagination__button--next")
+            next_button = page.locator("button.pagination-controls-next-button-visible")
 
             if next_button.count() == 0 or not next_button.is_enabled():
                 print("Não há mais páginas. Encerrando.")
@@ -178,7 +156,7 @@ def run_scraper_linkdin(max_paginas=2):
 
             page.wait_for_timeout(random.randint(4000, 6000))
 
-            page.wait_for_selector("[data-job-id]")
+            page.wait_for_selector('div[role="button"][componentkey^="job-card-component-ref-"]')
 
             pagina_atual += 1
 
