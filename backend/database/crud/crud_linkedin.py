@@ -7,13 +7,8 @@ from backend.database.model import Vaga
 def salvar_vaga(
     vaga_id,
     fonte,
-    titulo,
-    empresa,
-    localidade,
-    link_vaga,
-    data_publicacao,
+    titulo,    link_vaga,
     mensagem,
-    descricao
 ):
     # Cria uma sessão para realizar operações no banco de dados.
     session = SessionLocal()
@@ -31,12 +26,8 @@ def salvar_vaga(
             vaga_id=vaga_id,
             fonte=fonte,
             titulo=titulo,
-            empresa=empresa,
-            localidade=localidade,
             link_vaga=link_vaga,
-            data_publicacao=data_publicacao,
             mensagem=mensagem,
-            descricao=descricao
         )
 
         # Adiciona a vaga e confirma a transação.
