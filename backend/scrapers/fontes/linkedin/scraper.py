@@ -5,31 +5,59 @@ from backend.scrapers.fontes.linkedin.filtros import (
     titulo_relevante,
     descricao_relevante,
 )
-import time, random, os, json
+import time, random, os, json, re
 
 # Define o diretório onde os cookies da sessão serão armazenados.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 COOKIES_PATH = os.path.join(BASE_DIR, "cookies")
 os.makedirs(COOKIES_PATH, exist_ok=True)
 
+SEARCH_URL_BASE = (
+    "https://www.linkedin.com/jobs/search/"
+    "?distance=25&f_E=1%2C2%2C3&f_JT=F%2CP%2CC%2CI%2CO&f_TPR=r604800"
+    "&f_WT=2%2C1%2C3&geoId=104746682&keywords=desenvolvedor"
+    "&origin=JOB_SEARCH_PAGE_JOB_FILTER&sortBy=R"
+)
 
-# Rola a lista de vagas da página atual algumas vezes,
-# só para garantir que os cards visíveis carreguem imagens/lazy content.
+VAGAS_POR_PAGINA = 25  # padrão do LinkedIn
+JOB_LINK_SELECTOR = 'a[href*="/jobs/view/"]'
+ID_MINIMO_DIGITOS = 8
+
+
+def extrair_vaga_id(href):
+    match = re.search(r"/jobs/view/(?:.*-)?(\d{" + str(ID_MINIMO_DIGITOS) + r",})", href)
+    return match.group(1) if match else None
+
+def limpar_titulo(texto):
+    if not texto:
+        return ""
+
+    texto = re.sub(r"\s*with verification\s*$", "", texto, flags=re.IGNORECASE)
+    texto = re.sub(r"\s+", " ", texto).strip()
+
+    metade = len(texto) // 2
+    if metade > 0:
+        parte1, parte2 = texto[:metade].strip(), texto[metade:].strip()
+        if parte1 and parte1 == parte2:
+            texto = parte1
+
+    return texto.strip()
+
 def scroll_current_page(page, times=5):
     print("Executando scroll...")
 
     try:
-        cards = page.locator('div[role="button"][componentkey^="job-card-component-ref-"]')
-        quantidade = cards.count()
-        print(f"Cards encontrados antes do scroll: {quantidade}")
+        links = page.locator(JOB_LINK_SELECTOR)
+        quantidade = links.count()
+        print(f"Links de vaga encontrados antes do scroll: {quantidade}")
 
         if quantidade > 0:
             try:
-                cards.first.hover(timeout=5000)
+                links.first.hover(timeout=5000)
             except Exception:
-                print("Não foi possível fazer hover no card. Continuando scroll.")
+                print("Não foi possível fazer hover no primeiro link. Continuando scroll.")
         else:
-            print("Nenhum card encontrado. Fazendo scroll normal.")
+            print("Nenhum link de vaga encontrado. Fazendo scroll normal.")
 
         for _ in range(times):
             page.mouse.wheel(0, 800)
@@ -38,40 +66,89 @@ def scroll_current_page(page, times=5):
     except Exception as e:
         print(f"Erro no scroll: {e}")
 
+def extrair_descricao(page, timeout=10000):
+    descricao = ""
+    try:
+        painel = page.locator("div#job-details")
+        painel.wait_for(state="visible", timeout=timeout)
+        descricao = safe_text(painel)
+    except PlaywrightTimeoutError:
+        print("Painel de descrição não carregou a tempo.")
+    except Exception as e:
+        print(f"Erro ao extrair descrição: {e}")
 
-# Processa todos os cards de vaga carregados na página atual.
+    return descricao
+
+
+def salvar_vaga_com_fallback(**kwargs):
+    try:
+        salvar_vaga(**kwargs)
+    except TypeError as e:
+        if "descricao" in str(e):
+            kwargs.pop("descricao", None)
+            salvar_vaga(**kwargs)
+        else:
+            raise
+
+
 def process_current_page(page):
     try:
-        page.wait_for_selector('button[data-testid="pagination-controls-next-button-visible"]', timeout=20000)
+        page.wait_for_selector(JOB_LINK_SELECTOR, timeout=20000)
     except PlaywrightTimeoutError:
-        print("Nenhum card de vaga carregou.")
-        return
+        print("Nenhuma vaga carregou nesta página.")
+        return 0
+
     time.sleep(3)
 
-    cards = page.locator('div[role="button"][componentkey^="job-card-component-ref-"]')
-    total_cards = cards.count()
-    print(f"  -> {total_cards} vagas encontradas nesta página")
+    links = page.locator(JOB_LINK_SELECTOR)
+    total_links = links.count()
+    print(f"  -> {total_links} links de vaga encontrados nesta página (bruto, com duplicatas)")
 
-    for i in range(total_cards):
+    vagas_ja_vistas = set()
+    processadas = 0
+
+    for i in range(total_links):
         try:
-            card = cards.nth(i)
+            link = links.nth(i)
+            href = link.get_attribute("href")
 
-            componentkey = card.get_attribute("componentkey")
-
-            if not componentkey:
-                print(f"Card {i} não possui componentkey.")
+            if not href:
                 continue
 
-            vaga_id = componentkey.replace("job-card-component-ref-", "",)
+            vaga_id = extrair_vaga_id(href)
 
-            card.scroll_into_view_if_needed()
+            if not vaga_id or vaga_id in vagas_ja_vistas:
+                continue  # LinkedIn repete o mesmo link em vários elementos do card
+
+            vagas_ja_vistas.add(vaga_id)
+
+            link.scroll_into_view_if_needed()
             time.sleep(random.uniform(0.5, 1.0))
-            titulo = safe_text(card.locator("span[aria-hidden='true']").first)
+
+            titulo = safe_text(link)
+            if not titulo:
+                # fallback: alguns links não têm texto direto, o título
+                # fica num span[aria-hidden] dentro/perto do link
+                titulo = safe_text(link.locator("span[aria-hidden='true']").first)
+
+            titulo = limpar_titulo(titulo)
 
             if not titulo_relevante(titulo):
                 continue
 
-            link_vaga = (f"https://www.linkedin.com/jobs/view/{vaga_id}/")
+            link_vaga = f"https://www.linkedin.com/jobs/view/{vaga_id}/"
+
+            # Clica no link para abrir o painel de detalhes e ler a descrição.
+            descricao = ""
+            try:
+                link.click()
+                page.wait_for_timeout(int(random.uniform(1200, 2000)))
+                descricao = extrair_descricao(page)
+            except Exception as e:
+                print(f"Não foi possível abrir/ler descrição da vaga {vaga_id}: {e}")
+
+            if descricao and not descricao_relevante(descricao):
+                continue
 
             mensagem = (
                 "🔥 <b>Nova vaga no LinkedIn!</b>\n\n"
@@ -82,19 +159,25 @@ def process_current_page(page):
             print(f"""
                 Titulo: {titulo}
                 Link: {link_vaga}
+                Descrição (preview): {descricao[:150]}
                 Salvando vaga no banco... {vaga_id}
             """)
 
-            salvar_vaga(
+            salvar_vaga_com_fallback(
                 vaga_id=vaga_id,
                 fonte="linkedin",
                 titulo=titulo,
                 link_vaga=link_vaga,
                 mensagem=mensagem,
+                descricao=descricao,
             )
 
+            processadas += 1
+
         except Exception as e:
-            print(f"Um erro inesperado aconteceu no card {i}: {e}")
+            print(f"Um erro inesperado aconteceu no link {i}: {e}")
+
+    return processadas
 
 
 def run_scraper_linkdin(max_paginas=1):
@@ -102,7 +185,7 @@ def run_scraper_linkdin(max_paginas=1):
 
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=False,  # True para produção, False para desenvolvimento - Esse trecho faz com que a janela do google ebra ou não!
+            headless=False,  # True para produção, False para desenvolvimento
             args=[
                 "--no-sandbox"
                 # "--start-maximized" # Usado em desenvolvimento
@@ -114,7 +197,7 @@ def run_scraper_linkdin(max_paginas=1):
             context = browser.new_context(
                 storage_state=json.loads(
                     LINKEDIN_LOG
-                )  # Variavel de ambiente usada em produção!
+                )  # Variável de ambiente usada em produção!
             )
         else:
             STATE_PATH = os.path.join(  # Caminho absoluto usado em desenvolvimento!
@@ -131,37 +214,25 @@ def run_scraper_linkdin(max_paginas=1):
         )
         time.sleep(
             15
-        )  # Time de 15 segundos, devido a nova atualização do linkedin, que ficou mais lento.
-
-        # Acessa a página de vagas já filtrada com as preferências desejadas.
-        page.goto(
-            "https://www.linkedin.com/jobs/search/?currentJobId=4448035104&distance=25&f_E=1%2C2%2C3&f_JT=F%2CP%2CC%2CI%2CO&f_TPR=r604800&f_WT=2%2C1%2C3&geoId=104746682&keywords=desenvolvedor&origin=JOB_SEARCH_PAGE_JOB_FILTER&refresh=true&sortBy=R",
-            wait_until="domcontentloaded",
-        )
+        )  # 15s devido à atualização do LinkedIn, que ficou mais lento.
 
         pagina_atual = 1
         while pagina_atual <= max_paginas:
-            print(f"\n=== Processando página {pagina_atual} ===")
-            process_current_page(page)
+            start = (pagina_atual - 1) * VAGAS_POR_PAGINA
+            url_pagina = f"{SEARCH_URL_BASE}&start={start}"
+
+            print(f"\n=== Processando página {pagina_atual} (start={start}) ===")
+            page.goto(url_pagina, wait_until="domcontentloaded")
+            time.sleep(5)  # dá tempo da página renderizar antes de checar seletor
+
             scroll_current_page(page)
-            process_current_page(page)
+            processadas = process_current_page(page)
 
-            next_button = page.locator("button.pagination-controls-next-button-visible")
-
-            if next_button.count() == 0 or not next_button.is_enabled():
-                print("Não há mais páginas. Encerrando.")
+            if processadas == 0:
+                print("Nenhuma vaga processada nesta página. Encerrando.")
                 break
-
-            next_button.click()
-
-            page.wait_for_timeout(random.randint(4000, 6000))
-
-            page.wait_for_selector('div[role="button"][componentkey^="job-card-component-ref-"]')
 
             pagina_atual += 1
 
         time.sleep(3)
         browser.close()
-
-
-# Todos os prints foram usados com o proposito de debug!!!
