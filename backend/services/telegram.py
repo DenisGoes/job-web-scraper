@@ -3,7 +3,7 @@ from telebot.apihelper import ApiTelegramException
 from dotenv import load_dotenv
 from backend.database.connection import SessionLocal
 from backend.database.model import Vaga
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 import os
 import telebot
 import time
@@ -30,14 +30,14 @@ def callback(call):
         if vaga:
             if acao == "salva":
                 vaga.status = "salva"
-                vaga.remover_em = datetime.now(UTC) + timedelta(days=3)  # Registra data e hora atual
+                vaga.remover_em = datetime.now(timezone.utc) + timedelta(days=3)  # Registra data e hora atual
 
                 session.commit()
                 bot.answer_callback_query(call.id, f"Vaga marcada como {acao}")
 
             elif acao == "aplicada":
                 vaga.status = "aplicada"
-                vaga.remover_em = datetime.now(UTC) + timedelta(days=7)  # Registra data e hora atual
+                vaga.remover_em = datetime.now(timezone.utc) + timedelta(days=7)  # Registra data e hora atual
 
                 session.commit()
 
@@ -45,7 +45,7 @@ def callback(call):
 
             elif acao == "rejeitada":
                 vaga.status = "rejeitada"
-                vaga.remover_em = datetime.now(UTC) + timedelta(days=3)
+                vaga.remover_em = datetime.now(timezone.utc) + timedelta(days=3)
                 # Só tenta deletar a mensagem se o ID existir de fato.
                 if vaga.telegram_message_id:
                     try:
