@@ -1,5 +1,5 @@
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-from backend.database.crud.crud_linkedin import salvar_vaga
+from backend.database.crud.crud_linkedin import salvar_vaga, get_ids_existentes
 from backend.scrapers.fontes.linkedin.filtros import (
     safe_text,
     titulo_relevante,
@@ -80,18 +80,7 @@ def extrair_descricao(page, timeout=10000):
     return descricao
 
 
-def salvar_vaga_com_fallback(**kwargs):
-    try:
-        salvar_vaga(**kwargs)
-    except TypeError as e:
-        if "descricao" in str(e):
-            kwargs.pop("descricao", None)
-            salvar_vaga(**kwargs)
-        else:
-            raise
-
-
-def process_current_page(page):
+def process_current_page(page, vagas_conhecidas):
     try:
         page.wait_for_selector(JOB_LINK_SELECTOR, timeout=20000)
     except PlaywrightTimeoutError:
@@ -121,6 +110,11 @@ def process_current_page(page):
                 continue  # LinkedIn repete o mesmo link em vários elementos do card
 
             vagas_ja_vistas.add(vaga_id)
+
+            # Pula vagas que já existem no banco, antes de gastar tempo com
+            # scroll/click/extração de descrição.
+            if vaga_id in vagas_conhecidas:
+                continue
 
             link.scroll_into_view_if_needed()
             time.sleep(random.uniform(0.5, 1.0))
@@ -163,7 +157,7 @@ def process_current_page(page):
                 Salvando vaga no banco... {vaga_id}
             """)
 
-            salvar_vaga_com_fallback(
+            salvo = salvar_vaga(
                 vaga_id=vaga_id,
                 fonte="linkedin",
                 titulo=titulo,
@@ -172,7 +166,11 @@ def process_current_page(page):
                 descricao=descricao,
             )
 
-            processadas += 1
+            if salvo:
+                # Evita reprocessar/tentar salvar de novo se o mesmo card
+                # aparecer em outra página durante essa mesma execução.
+                vagas_conhecidas.add(vaga_id)
+                processadas += 1
 
         except Exception as e:
             print(f"Um erro inesperado aconteceu no link {i}: {e}")
@@ -182,6 +180,11 @@ def process_current_page(page):
 
 def run_scraper_linkdin(max_paginas=1):
     LINKEDIN_LOG = os.getenv("LINKEDIN_LOG")
+
+    # Carrega uma única vez todos os IDs já salvos no banco, evitando
+    # uma query por vaga durante o loop de processamento.
+    vagas_conhecidas = get_ids_existentes(fonte="linkedin")
+    print(f"{len(vagas_conhecidas)} vaga(s) já existentes no banco (serão puladas).")
 
     with sync_playwright() as p:
         browser = p.chromium.launch(
@@ -226,7 +229,7 @@ def run_scraper_linkdin(max_paginas=1):
             time.sleep(5)  # dá tempo da página renderizar antes de checar seletor
 
             scroll_current_page(page)
-            processadas = process_current_page(page)
+            processadas = process_current_page(page, vagas_conhecidas)
 
             if processadas == 0:
                 print("Nenhuma vaga processada nesta página. Encerrando.")
