@@ -7,8 +7,10 @@ from backend.database.model import Vaga
 def salvar_vaga(
     vaga_id,
     fonte,
-    titulo,    link_vaga,
+    titulo,
+    link_vaga,
     mensagem,
+    descricao=None,
 ):
     # Cria uma sessão para realizar operações no banco de dados.
     session = SessionLocal()
@@ -28,6 +30,7 @@ def salvar_vaga(
             titulo=titulo,
             link_vaga=link_vaga,
             mensagem=mensagem,
+            descricao=descricao,
         )
 
         # Adiciona a vaga e confirma a transação.
@@ -74,6 +77,21 @@ def buscar_vaga_por_id(vaga_id):
     except Exception as e:
         print(f"Erro ao buscar a vaga: {e}")
         return False
+
+    finally:
+        session.close()
+
+
+def get_ids_existentes(fonte="linkedin"):
+    session = SessionLocal()
+
+    try:
+        resultado = session.query(Vaga.vaga_id).filter_by(fonte=fonte).all()
+        return {vaga_id for (vaga_id,) in resultado}
+
+    except Exception as e:
+        print(f"Erro ao buscar IDs existentes: {e}")
+        return set()
 
     finally:
         session.close()
