@@ -1,9 +1,5 @@
 from backend.services.clean_db import clean_dados
 
-if __name__ == "__main___":
+if __name__ == "__main__":
     quantidade = clean_dados()
-
-    print(
-        f"Limpeza concluída. "
-        f"{quantidade} vaga(s) removida(s)"
-    )
+    print(f"Limpeza concluída. {quantidade} vaga(s) removida(s)")
