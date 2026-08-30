@@ -102,8 +102,6 @@ KEYWORDS = [normalizar(k) for k in KEYWORDS]
 EXCLUDE_KEYWORDS = [normalizar(k) for k in EXCLUDE_KEYWORDS]
 DESCRICAO_REPROVADOS = [normalizar(p) for p in DESCRICAO_REPROVADOS]
 
-
-
 # FILTROS
 def titulo_relevante(titulo: str) -> bool:
     titulo_normalizado = normalizar(titulo)

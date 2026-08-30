@@ -5,18 +5,22 @@ from backend.database.model import Vaga
 # Salva uma nova vaga no banco de dados.
 # Antes de inserir, verifica se já existe uma vaga com o mesmo ID,
 # evitando registros duplicados.
+#
+# Apenas vaga_id, fonte, titulo, link_vaga e mensagem são obrigatórios.
+# Os demais campos são opcionais, permitindo cadastrar vagas "completas"
+# (com empresa, localidade, salário etc.) ou vagas "simples".
 def salvar_vaga(
     vaga_id,
     fonte,
     titulo,
-    empresa,
-    localidade,
-    salario,
-    modelo_trabalho,
     link_vaga,
-    data_publicacao,
     mensagem,
-    descricao
+    empresa=None,
+    localidade=None,
+    salario=None,
+    modelo_trabalho=None,
+    data_publicacao=None,
+    descricao=None,
 ):
     # Cria uma nova sessão de conexão com o banco de dados.
     session = SessionLocal()
@@ -41,7 +45,7 @@ def salvar_vaga(
             link_vaga=link_vaga,
             data_publicacao=data_publicacao,
             mensagem=mensagem,
-            descricao=descricao
+            descricao=descricao,
         )
 
         # Adiciona a vaga à sessão e confirma a transação.
@@ -69,8 +73,7 @@ def buscar_todas_vagas():
 
     try:
         # Recupera todos os registros da tabela de vagas.
-        vagas = session.query(Vaga).all()
-        return vagas
+        return session.query(Vaga).all()
 
     except Exception as e:
         print(f"Erro ao buscar vagas: {e}")
@@ -86,8 +89,7 @@ def buscar_vaga_por_id(vaga_id):
 
     try:
         # Retorna a primeira vaga encontrada com o ID informado.
-        vaga = session.query(Vaga).filter_by(vaga_id=vaga_id).first()
-        return vaga
+        return session.query(Vaga).filter_by(vaga_id=vaga_id).first()
 
     except Exception as e:
         print(f"Erro ao buscar a vaga: {e}")
