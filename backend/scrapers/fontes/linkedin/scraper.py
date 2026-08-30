@@ -1,6 +1,6 @@
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-from backend.database.crud.crud_linkedin import salvar_vaga
-from backend.scrapers.fontes.linkedin.filtros import (
+from backend.database.crud.crud_vaga import salvar_vaga
+from backend.scrapers.filtros import (
     safe_text,
     titulo_relevante,
     descricao_relevante,
@@ -185,7 +185,7 @@ def run_scraper_linkdin(max_paginas=1):
 
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=False,  # True para produção, False para desenvolvimento
+            headless=True,  # True para produção, False para desenvolvimento
             args=[
                 "--no-sandbox"
                 # "--start-maximized" # Usado em desenvolvimento

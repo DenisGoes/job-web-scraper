@@ -1,6 +1,6 @@
 from playwright.sync_api import sync_playwright
-from backend.database.crud.crud_infojobs import salvar_vaga
-from backend.scrapers.fontes.infojobs.filtros import (
+from backend.database.crud.crud_vaga import salvar_vaga
+from backend.scrapers.filtros import (
     safe_text,
     titulo_relevante,
     descricao_relevante,
