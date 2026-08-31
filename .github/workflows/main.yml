@@ -9,7 +9,6 @@ jobs:
   infojobs:
     name: Scraper InfoJobs
     runs-on: ubuntu-latest
-
     steps:
       - name: Baixar código
         uses: actions/checkout@v4
@@ -39,7 +38,6 @@ jobs:
   linkedin:
     name: Scraper LinkedIn
     runs-on: ubuntu-latest
-
     steps:
       - name: Baixar código
         uses: actions/checkout@v4
@@ -65,3 +63,90 @@ jobs:
           CANAL_ID: ${{ secrets.CANAL_ID }}
           LINKEDIN_LOG: ${{ secrets.LINKEDIN_LOG }}
         run: python -m backend.scripts.run_linkedin
+
+  bradesco:
+    name: Scraper Bradesco
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Instalar Chromium do Playwright
+        run: |
+          playwright install chromium --with-deps
+
+      - name: Executar scraper Bradesco
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          CANAL_ID: ${{ secrets.CANAL_ID }}
+          BRADESCO_LOG: ${{ secrets.BRADESCO_LOG }}
+        run: python -m backend.scripts.run_bradesco
+
+  itau:
+    name: Scraper Itaú
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Instalar Chromium do Playwright
+        run: |
+          playwright install chromium --with-deps
+
+      - name: Executar scraper Itaú
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          CANAL_ID: ${{ secrets.CANAL_ID }}
+          ITAU_LOG: ${{ secrets.ITAU_LOG }}
+        run: python -m backend.scripts.run_itau
+
+  santander:
+    name: Scraper Santander
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Instalar Chromium do Playwright
+        run: |
+          playwright install chromium --with-deps
+
+      - name: Executar scraper Santander
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          CANAL_ID: ${{ secrets.CANAL_ID }}
+          SANTANDER_LOG: ${{ secrets.SANTANDER_LOG }}
+        run: python -m backend.scripts.run_santander
