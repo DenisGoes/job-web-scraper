@@ -1,5 +1,5 @@
 from app.database.connection import SessionLocal
-from app.database.model import Vaga
+from app.database.model import Vaga as VagaModel
 
 
 class VagaRepository:
@@ -7,7 +7,7 @@ class VagaRepository:
     def listar_todas_vagas(self):
         try:
             with SessionLocal() as session:
-                return session.query(Vaga).all()
+                return session.query(VagaModel).all()
 
         except Exception as e:
             print(f"Erro ao buscar vagas: {e}")
@@ -16,7 +16,7 @@ class VagaRepository:
     def buscar_vaga_por_id(self, vaga_id):
         try:
             with SessionLocal() as session:
-                return session.query(Vaga).filter_by(
+                return session.query(VagaModel).filter_by(
                     vaga_id=vaga_id
                 ).first()
 
@@ -28,7 +28,7 @@ class VagaRepository:
         try:
             with SessionLocal() as session:
 
-                vaga_existente = session.query(Vaga).filter_by(
+                vaga_existente = session.query(VagaModel).filter_by(
                     vaga_id=vaga.vaga_id
                 ).first()
 
@@ -36,7 +36,21 @@ class VagaRepository:
                     print("Vaga já existe no banco de dados.")
                     return False
 
-                session.add(vaga)
+                nova_vaga = VagaModel(
+                    vaga_id=vaga.vaga_id,
+                    fonte=vaga.fonte,
+                    titulo=vaga.titulo,
+                    empresa=vaga.empresa,
+                    localidade=vaga.localidade,
+                    salario=vaga.salario,
+                    modelo_trabalho=vaga.modelo_trabalho,
+                    descricao=vaga.descricao,
+                    data_publicacao=vaga.data_publicacao,
+                    link_vaga=vaga.link_vaga,
+                    mensagem=vaga.mensagem,
+                )
+
+                session.add(nova_vaga)
                 session.commit()
 
                 print("Vaga salva com sucesso!")
@@ -50,7 +64,7 @@ class VagaRepository:
         try:
             with SessionLocal() as session:
 
-                vaga = session.query(Vaga).filter_by(
+                vaga = session.query(VagaModel).filter_by(
                     vaga_id=vaga_id
                 ).first()
 
@@ -71,7 +85,7 @@ class VagaRepository:
         try:
             with SessionLocal() as session:
 
-                vaga = session.query(Vaga).filter_by(
+                vaga = session.query(VagaModel).filter_by(
                     vaga_id=vaga_id
                 ).first()
 
