@@ -1,6 +1,6 @@
 class Vaga:
     def __init__(self, vaga_id, fonte, titulo, link_vaga, empresa=None
-                 , localidade=None, salario=None, modelo_trabalho=None, descricao=None, data_publicacao=None):
+                 , localidade=None, salario=None, modelo_trabalho=None, descricao=None, data_publicacao=None, mensagem=None):
         self.vaga_id = vaga_id
         self.fonte = fonte
         self.titulo = titulo
@@ -11,5 +11,6 @@ class Vaga:
         self.descricao = descricao
         self.data_publicacao = data_publicacao
         self.link_vaga = link_vaga
+        self.mensagem = mensagem
 
     
