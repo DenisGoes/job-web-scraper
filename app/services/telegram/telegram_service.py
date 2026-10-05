@@ -1,13 +1,10 @@
-import json
+from datetime import datetime, timedelta, timezone
 import time
 import traceback
 
-from datetime import datetime, timedelta, timezone
-
 import telebot
-
-from telebot.util import quick_markup
 from telebot.apihelper import ApiTelegramException
+from telebot.util import quick_markup
 
 from app.config.settings import API_TOKEN, CANAL_ID
 from app.database.connection import SessionLocal
@@ -15,354 +12,102 @@ from app.database.model import Vaga
 from app.services.IA.analise.analise_service import AnaliseService
 
 
-print("=" * 60)
+print("=" * 80)
 print("CARREGANDO TELEGRAM SERVICE")
+print("=" * 80)
 
 if not API_TOKEN:
+    print("❌ API_TOKEN NÃO CONFIGURADO!")
     raise ValueError("API_TOKEN não configurado.")
 
-print("API_TOKEN encontrado.")
-
-if not CANAL_ID:
-    print("AVISO: CANAL_ID não configurado.")
-
-analise_service = AnaliseService()
+print("✅ API_TOKEN encontrado.")
 
 bot = telebot.TeleBot(API_TOKEN)
 
-print("Bot Telegram criado.")
-print("=" * 60)
+print("✅ Bot Telegram criado.")
+print("=" * 80)
 
+
+# ============================================================
+# CALLBACK DEBUG
+# ============================================================
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback(call):
 
-    print("=" * 60)
-    print("🔥 CALLBACK RECEBIDO PELO TELEGRAM SERVICE")
+    print("\n")
+    print("=" * 80)
+    print("🔥🔥🔥 CALLBACK RECEBIDO 🔥🔥🔥")
+    print("=" * 80)
 
     try:
+
         print(f"Callback ID: {call.id}")
-        print(f"Callback data: {call.data}")
-        print(f"Chat ID: {call.message.chat.id if call.message else 'SEM MESSAGE'}")
+        print(f"Callback DATA: {call.data}")
 
-    except Exception as e:
-        print(f"Erro ao ler dados iniciais do callback: {e}")
+        print(f"Usuário:")
+        print(f"  ID: {call.from_user.id}")
+        print(f"  Nome: {call.from_user.first_name}")
+        print(f"  Username: {call.from_user.username}")
 
-    session = SessionLocal()
+        if call.message:
 
-    try:
+            print("Mensagem:")
+            print(f"  Message ID: {call.message.message_id}")
 
-        print("Abrindo sessão do banco...")
-
-        if not call.data:
-            print("CALLBACK SEM DATA.")
-            return
-
-        print(f"call.data = {call.data}")
-
-        partes = call.data.split(":")
-
-        if len(partes) != 2:
-
-            print(f"Formato inesperado de callback: {call.data}")
-
-            bot.answer_callback_query(
-                call.id,
-                "Callback inválido."
-            )
-
-            return
-
-        acao, vaga_id = partes
-
-        print(f"Ação: {acao}")
-        print(f"Vaga ID recebido: {vaga_id}")
-
-        vaga_id = int(vaga_id)
-
-        print("Buscando vaga no banco...")
-
-        vaga = (
-            session
-            .query(Vaga)
-            .filter_by(id=vaga_id)
-            .first()
-        )
-
-        if not vaga:
-
-            print(f"Vaga {vaga_id} não encontrada.")
-
-            bot.answer_callback_query(
-                call.id,
-                "Vaga não encontrada."
-            )
-
-            return
-
-        print(f"Vaga encontrada: {vaga.id}")
-        print(f"Título: {vaga.titulo}")
-
-        # =====================================================
-        # SALVAR
-        # =====================================================
-
-        if acao == "salva":
-
-            print("AÇÃO = SALVA")
-
-            if vaga.status == "salva":
-
-                bot.answer_callback_query(
-                    call.id,
-                    "Essa vaga já está salva."
-                )
-
-            elif vaga.status == "aplicada":
-
-                bot.answer_callback_query(
-                    call.id,
-                    "Essa vaga já foi aplicada."
-                )
-
-            else:
-
-                vaga.status = "salva"
-
-                vaga.remover_em = (
-                    datetime.now(timezone.utc)
-                    + timedelta(days=3)
-                )
-
-                session.commit()
-
-                bot.answer_callback_query(
-                    call.id,
-                    "Vaga marcada como salva"
-                )
-
-        # =====================================================
-        # APLICADA
-        # =====================================================
-
-        elif acao == "aplicada":
-
-            print("AÇÃO = APLICADA")
-
-            if vaga.status == "aplicada":
-
-                bot.answer_callback_query(
-                    call.id,
-                    "Essa vaga já foi aplicada."
-                )
-
-            else:
-
-                vaga.status = "aplicada"
-
-                vaga.remover_em = (
-                    datetime.now(timezone.utc)
-                    + timedelta(days=7)
-                )
-
-                session.commit()
-
-                bot.answer_callback_query(
-                    call.id,
-                    "Vaga marcada como aplicada"
-                )
-
-        # =====================================================
-        # REJEITADA
-        # =====================================================
-
-        elif acao == "rejeitada":
-
-            print("AÇÃO = REJEITADA")
-
-            if vaga.status == "rejeitada":
-
-                bot.answer_callback_query(
-                    call.id,
-                    "Essa vaga já foi rejeitada."
-                )
-
-            else:
-
-                vaga.status = "rejeitada"
-
-                vaga.remover_em = (
-                    datetime.now(timezone.utc)
-                    + timedelta(days=3)
-                )
-
-                if vaga.telegram_message_id:
-
-                    try:
-
-                        print(
-                            f"Deletando mensagem Telegram "
-                            f"{vaga.telegram_message_id}"
-                        )
-
-                        bot.delete_message(
-                            CANAL_ID,
-                            vaga.telegram_message_id
-                        )
-
-                        vaga.telegram_message_id = None
-
-                    except ApiTelegramException as e:
-
-                        print(
-                            f"Erro ao deletar mensagem: {e}"
-                        )
-
-                else:
-
-                    print(
-                        f"Vaga {vaga.id} não possui "
-                        f"telegram_message_id."
-                    )
-
-                session.commit()
-
-                bot.answer_callback_query(
-                    call.id,
-                    "Vaga marcada como rejeitada"
-                )
-
-        # =====================================================
-        # ANALISAR
-        # =====================================================
-
-        elif acao == "analisar":
-
-            print("=" * 60)
-            print("🤖 AÇÃO = ANALISAR")
-            print(f"Vaga ID: {vaga.id}")
-            print(f"Título: {vaga.titulo}")
-            print("Chamando AnaliseService...")
-
-            try:
-
-                analise = analise_service.analisar(vaga)
-
-                print("AnaliseService retornou.")
-
-                print("Tipo da análise:")
-                print(type(analise))
-
-                print("Conteúdo da análise:")
-                print(analise)
-
-                mensagem = json.dumps(
-                    analise,
-                    ensure_ascii=False,
-                    indent=2
-                )
-
-                print(
-                    "Tamanho da mensagem:"
-                    f" {len(mensagem)} caracteres"
-                )
-
-                print(
-                    "Enviando análise para o Telegram..."
-                )
-
-                chat_id = call.message.chat.id
-
-                print(f"Chat ID destino: {chat_id}")
-
-                resposta_telegram = bot.send_message(
-                    chat_id,
-                    mensagem
-                )
-
-                print(
-                    "Mensagem enviada para Telegram."
-                )
-
-                print(
-                    f"Message ID: "
-                    f"{resposta_telegram.message_id}"
-                )
-
-                bot.answer_callback_query(
-                    call.id,
-                    "Análise gerada!"
-                )
-
-                print(
-                    "Callback respondido com sucesso."
-                )
-
-            except Exception as e:
-
-                print("=" * 60)
-                print("❌ ERRO AO GERAR ANÁLISE")
-                print(f"Tipo: {type(e).__name__}")
-                print(f"Erro: {e}")
-
-                traceback.print_exc()
-
-                print("=" * 60)
-
-                try:
-
-                    bot.answer_callback_query(
-                        call.id,
-                        "Erro ao gerar análise."
-                    )
-
-                except Exception as callback_error:
-
-                    print(
-                        "Erro ao responder callback:"
-                    )
-
-                    print(callback_error)
-
-        # =====================================================
-        # AÇÃO DESCONHECIDA
-        # =====================================================
+            if call.message.chat:
+                print(f"  Chat ID: {call.message.chat.id}")
+                print(f"  Chat TYPE: {call.message.chat.type}")
+                print(f"  Chat TITLE: {call.message.chat.title}")
 
         else:
 
-            print(
-                f"AÇÃO DESCONHECIDA: {acao}"
-            )
+            print("⚠️ call.message é None")
 
-            bot.answer_callback_query(
-                call.id,
-                "Ação desconhecida."
-            )
+        print("-" * 80)
+        print("TESTANDO answer_callback_query...")
+
+        bot.answer_callback_query(
+            callback_query_id=call.id,
+            text="✅ Callback recebido pelo servidor!"
+        )
+
+        print("✅ answer_callback_query FUNCIONOU")
+
+        print("-" * 80)
+
+        # --------------------------------------------------------
+        # NÃO FAZER BANCO
+        # NÃO FAZER GEMINI
+        # NÃO FAZER OUTRAS OPERAÇÕES
+        # --------------------------------------------------------
+
+        print("✅ CALLBACK DEBUG FINALIZADO")
+        print("=" * 80)
 
     except Exception as e:
 
-        print("=" * 60)
-        print("❌ ERRO GERAL NO CALLBACK")
-        print(f"Tipo: {type(e).__name__}")
-        print(f"Erro: {e}")
+        print("=" * 80)
+        print("❌ ERRO DENTRO DO CALLBACK")
+        print("=" * 80)
+
+        print(f"Tipo do erro: {type(e).__name__}")
+        print(f"Mensagem: {e}")
 
         traceback.print_exc()
 
-        print("=" * 60)
+        print("=" * 80)
 
-    finally:
 
-        session.close()
-
-        print("Sessão do banco fechada.")
-        print("=" * 60)
-
+# ============================================================
+# ENVIO DE VAGA
+# ============================================================
 
 def enviar_vaga(vaga, max_tentativas=3):
 
-    print(
-        f"Preparando envio da vaga {vaga.id}"
-    )
+    print("=" * 80)
+    print(f"ENVIANDO VAGA {vaga.id}")
+    print("=" * 80)
 
     markup = quick_markup(
         {
@@ -382,13 +127,19 @@ def enviar_vaga(vaga, max_tentativas=3):
         row_width=2,
     )
 
+    print("Callback buttons criados:")
+    print(f"  aplicada:{vaga.id}")
+    print(f"  salva:{vaga.id}")
+    print(f"  rejeitada:{vaga.id}")
+    print(f"  analisar:{vaga.id}")
+
     for tentativa in range(max_tentativas):
 
         try:
 
             print(
-                f"Enviando vaga {vaga.id}. "
-                f"Tentativa {tentativa + 1}"
+                f"Tentativa {tentativa + 1}/{max_tentativas} "
+                f"para enviar vaga {vaga.id}"
             )
 
             message = bot.send_message(
@@ -398,18 +149,23 @@ def enviar_vaga(vaga, max_tentativas=3):
                 parse_mode="HTML"
             )
 
-            vaga.telegram_message_id = (
-                message.message_id
+            print(
+                f"✅ Vaga enviada. "
+                f"Telegram message_id={message.message_id}"
             )
 
-            print(
-                f"Vaga {vaga.id} enviada. "
-                f"Message ID: {message.message_id}"
-            )
+            vaga.telegram_message_id = message.message_id
 
             return True
 
         except ApiTelegramException as e:
+
+            print("=" * 80)
+            print("❌ ERRO TELEGRAM AO ENVIAR VAGA")
+            print("=" * 80)
+
+            print(f"Status code: {e.error_code}")
+            print(f"Erro: {e}")
 
             if e.error_code == 429:
 
@@ -420,8 +176,7 @@ def enviar_vaga(vaga, max_tentativas=3):
                 )
 
                 print(
-                    f"Rate limit atingido "
-                    f"(vaga {vaga.id}). "
+                    f"Rate limit. "
                     f"Aguardando {retry_after}s..."
                 )
 
@@ -429,22 +184,38 @@ def enviar_vaga(vaga, max_tentativas=3):
 
             else:
 
-                print(
-                    f"Erro ao enviar vaga "
-                    f"{vaga.id}: {e}"
-                )
-
                 return False
 
+        except Exception as e:
+
+            print("=" * 80)
+            print("❌ ERRO INESPERADO AO ENVIAR VAGA")
+            print("=" * 80)
+
+            print(f"Tipo: {type(e).__name__}")
+            print(f"Erro: {e}")
+
+            traceback.print_exc()
+
+            return False
+
     print(
-        f"Falha ao enviar vaga {vaga.id} "
+        f"❌ Falha ao enviar vaga {vaga.id} "
         f"após {max_tentativas} tentativas."
     )
 
     return False
 
 
+# ============================================================
+# ENVIO DE NOVAS VAGAS
+# ============================================================
+
 def enviar_novas_vagas():
+
+    print("=" * 80)
+    print("PROCURANDO NOVAS VAGAS")
+    print("=" * 80)
 
     session = SessionLocal()
 
@@ -458,10 +229,14 @@ def enviar_novas_vagas():
         )
 
         print(
-            f"{len(vagas)} vaga(s) nova(s) para enviar."
+            f"{len(vagas)} vaga(s) nova(s) "
+            f"encontrada(s)."
         )
 
         for vaga in vagas:
+
+            print("-" * 80)
+            print(f"Processando vaga ID: {vaga.id}")
 
             sucesso = enviar_vaga(vaga)
 
@@ -471,25 +246,79 @@ def enviar_novas_vagas():
 
                 session.commit()
 
+                print(
+                    f"✅ Vaga {vaga.id} marcada como enviada."
+                )
+
             else:
 
                 print(
-                    f"Vaga {vaga.id} mantida "
-                    "como 'nova' para reenvio futuro."
+                    f"⚠️ Vaga {vaga.id} continuará como nova."
                 )
 
                 session.rollback()
 
             time.sleep(1.5)
 
-        print("Vagas enviadas!")
+        print("✅ Processo de envio finalizado.")
 
     except Exception as e:
 
-        print(f"Erro envio: {e}")
+        print("=" * 80)
+        print("❌ ERRO AO ENVIAR NOVAS VAGAS")
+        print("=" * 80)
+
+        print(f"Tipo: {type(e).__name__}")
+        print(f"Erro: {e}")
+
+        traceback.print_exc()
 
         session.rollback()
 
     finally:
 
         session.close()
+
+        print("Sessão do banco fechada.")
+
+
+# ============================================================
+# FUNÇÕES AUXILIARES ANTIGAS
+# ============================================================
+
+def marcar_salva(vaga):
+
+    vaga.status = "salva"
+
+    vaga.remover_em = (
+        datetime.now(timezone.utc)
+        + timedelta(days=3)
+    )
+
+
+def marcar_aplicada(vaga):
+
+    vaga.status = "aplicada"
+
+    vaga.remover_em = (
+        datetime.now(timezone.utc)
+        + timedelta(days=7)
+    )
+
+
+def marcar_rejeitada(vaga):
+
+    vaga.status = "rejeitada"
+
+    vaga.remover_em = (
+        datetime.now(timezone.utc)
+        + timedelta(days=3)
+    )
+
+
+print("=" * 80)
+print("✅ TELEGRAM SERVICE CARREGADO")
+print("✅ CALLBACK DEBUG ATIVO")
+print("⚠️ GEMINI NÃO SERÁ EXECUTADO NESTE TESTE")
+print("⚠️ BANCO NÃO SERÁ CONSULTADO PELO CALLBACK")
+print("=" * 80)
