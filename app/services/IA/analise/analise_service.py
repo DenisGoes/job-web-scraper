@@ -10,15 +10,19 @@ from app.config.settings import GEMINI_API_KEY
 class AnaliseService:
 
     def __init__(self):
+
+        print("=" * 60)
+        print("INICIALIZANDO ANALISE SERVICE")
+
+        if not GEMINI_API_KEY:
+            raise ValueError("GEMINI_API_KEY não configurada.")
+
+        print("GEMINI_API_KEY encontrada.")
+
         self.client = genai.Client(
             api_key=GEMINI_API_KEY
         )
 
-        # analise_service.py
-        #      ↓ parent
-        # analise/
-        #      ↓ parent.parent
-        # IA/
         base_dir = Path(__file__).resolve().parent.parent
 
         caminho_curriculo = (
@@ -28,11 +32,28 @@ class AnaliseService:
             / "curriculo_base.md"
         )
 
+        print(f"Procurando currículo em: {caminho_curriculo}")
+
+        if not caminho_curriculo.exists():
+            raise FileNotFoundError(
+                f"Currículo não encontrado: {caminho_curriculo}"
+            )
+
         self.curriculo = caminho_curriculo.read_text(
             encoding="utf-8"
         )
 
+        print("Currículo carregado com sucesso.")
+        print("=" * 60)
+
     def analisar(self, vaga):
+
+        print("=" * 60)
+        print("ANALISE SERVICE -> INICIANDO")
+        print(f"Vaga ID: {vaga.id}")
+        print(f"Título: {vaga.titulo}")
+        print(f"Empresa: {vaga.empresa}")
+        print(f"Localidade: {vaga.localidade}")
 
         informacoes_vaga = {
             "titulo": vaga.titulo,
@@ -86,16 +107,20 @@ PERFIL DO CANDIDATO
 ========================
 
 Localização:
+
 Osasco - SP, Brasil
 
 Formação:
+
 2º semestre de Análise e Desenvolvimento de Sistemas
 no SENAI.
 
 Área principal de interesse:
+
 Backend.
 
 Frontend:
+
 Pode ser considerado quando fizer parte da vaga, mas não é
 a principal área de interesse.
 
@@ -128,15 +153,19 @@ VAGA
 ========================
 
 Título:
+
 {informacoes_vaga["titulo"]}
 
 Empresa:
+
 {informacoes_vaga["empresa"]}
 
 Localidade:
+
 {informacoes_vaga["localidade"]}
 
 Descrição:
+
 {informacoes_vaga["descricao"]}
 
 ========================
@@ -321,25 +350,66 @@ Utilize exatamente esta estrutura:
 }}
 """
 
-        response = self.client.models.generate_content(
-            model="gemini-3-flash-preview",
-            contents=[prompt],
-            config=types.GenerateContentConfig(
-                temperature=0.2,
-                response_mime_type="application/json"
+        print("Prompt criado.")
+        print(f"Tamanho do prompt: {len(prompt)} caracteres.")
+        print("Chamando Gemini...")
+
+        try:
+
+            response = self.client.models.generate_content(
+                model="gemini-3-flash-preview",
+                contents=[prompt],
+                config=types.GenerateContentConfig(
+                    temperature=0.2,
+                    response_mime_type="application/json"
+                )
             )
-        )
+
+        except Exception as e:
+
+            print("=" * 60)
+            print("ERRO AO CHAMAR GEMINI")
+            print(f"Tipo: {type(e).__name__}")
+            print(f"Erro: {e}")
+            print("=" * 60)
+
+            raise
+
+        print("Gemini respondeu.")
 
         if not response.text:
+
+            print("Gemini retornou resposta vazia.")
+
             raise ValueError(
                 "O Gemini não retornou nenhum conteúdo."
             )
 
+        print(f"Tamanho da resposta: {len(response.text)}")
+        print("Resposta bruta do Gemini:")
+        print(response.text)
+
         try:
+
             resultado = json.loads(response.text)
+
         except json.JSONDecodeError as e:
+
+            print("=" * 60)
+            print("JSON INVÁLIDO RETORNADO PELO GEMINI")
+            print(f"Erro: {e}")
+            print("Resposta:")
+            print(response.text)
+            print("=" * 60)
+
             raise ValueError(
                 f"O Gemini retornou um JSON inválido: {e}"
             )
+
+        print("JSON convertido para dict com sucesso.")
+        print(f"Tipo: {type(resultado)}")
+        print(f"Chaves: {list(resultado.keys())}")
+        print("ANALISE SERVICE -> FINALIZADO")
+        print("=" * 60)
 
         return resultado

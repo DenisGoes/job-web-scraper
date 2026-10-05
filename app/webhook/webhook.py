@@ -1,37 +1,85 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 import telebot
 
-from app.config.settings import API_TOKEN
 from app.services.telegram.telegram_service import bot
 
 
 router = APIRouter()
 
 
-# PRODUÇÃO
 @router.post("/webhook")
-async def webhook(update: dict):
+async def webhook(request: Request):
 
-    if update:
-        update = telebot.types.Update.de_json(update)
-        bot.process_new_updates([update])
+    print("=" * 60)
+    print("🔥🔥🔥 WEBHOOK RECEBEU UMA REQUISIÇÃO 🔥🔥🔥")
 
-    return {"status": "ok"}
+    try:
 
+        update = await request.json()
 
-# DESENVOLVIMENTO LOCAL
-# @router.post("/webhook/dev/{token}")
-# async def webhook_dev(token: str, update: dict):
+        print("UPDATE RECEBIDO DO TELEGRAM:")
+        print(update)
 
-#     if token != API_TOKEN:
-#         return {
-#             "status": "error",
-#             "message": "token inválido"
-#         }
+        print(
+            f"Tipo do update: {type(update)}"
+        )
 
-#     if update:
-#         update = telebot.types.Update.de_json(update)
-#         bot.process_new_updates([update])
+        if not update:
 
-#     return {"status": "ok"}
+            print("UPDATE VAZIO.")
+
+            return {
+                "status": "ok",
+                "message": "update vazio"
+            }
+
+        print(
+            "Convertendo update para "
+            "telebot.types.Update..."
+        )
+
+        telegram_update = (
+            telebot.types.Update.de_json(update)
+        )
+
+        print(
+            "Update convertido com sucesso."
+        )
+
+        print(
+            "Enviando update para "
+            "bot.process_new_updates()..."
+        )
+
+        bot.process_new_updates(
+            [telegram_update]
+        )
+
+        print(
+            "bot.process_new_updates() executado."
+        )
+
+        print("=" * 60)
+
+        return {
+            "status": "ok"
+        }
+
+    except Exception as e:
+
+        print("=" * 60)
+        print("❌ ERRO NO WEBHOOK")
+        print(f"Tipo: {type(e).__name__}")
+        print(f"Erro: {e}")
+
+        import traceback
+
+        traceback.print_exc()
+
+        print("=" * 60)
+
+        return {
+            "status": "error",
+            "message": str(e)
+        }
