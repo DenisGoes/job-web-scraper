@@ -1,4 +1,4 @@
-from app.integrations.telegram.telegram import bot
+from app.services.telegram.telegram_service import bot
 from app.config.settings import WEBHOOK_URL
 
 

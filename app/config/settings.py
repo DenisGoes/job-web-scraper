@@ -9,6 +9,9 @@ load_dotenv()
 API_TOKEN = os.getenv("API_TOKEN")
 CANAL_ID = os.getenv("CANAL_ID")
 
+TOKEN_TELEGRAM_ANALISE = os.getenv("TOKEN_TELEGRAM_ANALISE")
+CANAL_ID_ANALISE = os.getenv("CANAL_ID_ANALISE")
+
 INFOJOBS_LOG = os.getenv("INFOJOBS_LOG")
 LINKEDIN_LOG = os.getenv("LINKEDIN_LOG")
 

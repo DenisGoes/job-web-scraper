@@ -1,5 +1,5 @@
 from app.scrapers.linkedin_scraper import LinkedinScraper
-from app.integrations.telegram.telegram import enviar_novas_vagas
+from app.services.telegram.telegram_service import enviar_novas_vagas
 
 
 def main():

@@ -1,5 +1,5 @@
 from app.scrapers.itau_scraper import ItauScraper
-from app.integrations.telegram.telegram import enviar_novas_vagas
+from app.services.telegram.telegram_service import enviar_novas_vagas
 
 
 def main():

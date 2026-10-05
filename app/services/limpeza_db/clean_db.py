@@ -1,6 +1,6 @@
 from app.database.connection import SessionLocal
 from app.database.model import Vaga
-from app.integrations.telegram.telegram import bot
+from app.services.telegram.telegram_service import bot
 from app.config.settings import CANAL_ID
 from telebot.apihelper import ApiTelegramException
 from sqlalchemy import select

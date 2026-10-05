@@ -7,8 +7,9 @@ from datetime import datetime, timedelta, timezone
 import time
 import traceback
 import telebot
+from app.services.IA.analise.analise_service import AnaliseService
 
-
+analise_service = AnaliseService()
 bot = telebot.TeleBot(API_TOKEN)
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -65,6 +66,27 @@ def callback(call):
 
                 session.commit()
                 bot.answer_callback_query(call.id, "Vaga marcada como rejeitada")
+        elif acao == "analisar":
+            try:
+                analise = analise_service.analisar(vaga)
+
+                bot.send_message(
+                    call.message.chat.id,
+                    analise
+                )
+
+                bot.answer_callback_query(
+                    call.id,
+                    "Análise gerada!"
+                )
+
+            except Exception as e:
+                print(f"Erro ao gerar análise da vaga {vaga.id}: {e}")
+
+                bot.answer_callback_query(
+                    call.id,
+                    "Erro ao gerar análise."
+                )
 
     except Exception:
         traceback.print_exc()
@@ -79,6 +101,7 @@ def enviar_vaga(vaga, max_tentativas=3):
             "✅ Aplicada": {"callback_data": f"aplicada:{vaga.id}"},
             "⭐ Salva": {"callback_data": f"salva:{vaga.id}"},
             "❌ Rejeitada": {"callback_data": f"rejeitada:{vaga.id}"},
+            "🤖 Gerar análise": {"callback_data": f"analisar:{vaga.id}"}
         },
         row_width=2,
     )
@@ -109,6 +132,7 @@ def enviar_novas_vagas():
 
     try:
         vagas = session.query(Vaga).filter_by(status="nova").all()
+
         print(f"{len(vagas)} vaga(s) nova(s) para enviar.")
 
         for vaga in vagas:
@@ -118,7 +142,9 @@ def enviar_novas_vagas():
                 vaga.status = "enviada"
                 session.commit()
             else:
-                print(f"Vaga {vaga.id} mantida como 'nova' para reenvio futuro.")
+                print(
+                    f"Vaga {vaga.id} mantida como 'nova' para reenvio futuro."
+                )
                 session.rollback()
 
             time.sleep(1.5)

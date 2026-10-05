@@ -1,13 +1,12 @@
 from fastapi import APIRouter
+
 import telebot
-import os
 
 from app.config.settings import API_TOKEN
-from app.services.telegram import bot
+from app.services.telegram.telegram_service import bot
 
 
 router = APIRouter()
-
 
 
 # PRODUÇÃO
@@ -21,11 +20,7 @@ async def webhook(update: dict):
     return {"status": "ok"}
 
 
-
 # DESENVOLVIMENTO LOCAL
-
-# Webhook usado com ngrok
-# https://xxxxx.ngrok-free.dev/webhook/dev/TOKEN
 # @router.post("/webhook/dev/{token}")
 # async def webhook_dev(token: str, update: dict):
 

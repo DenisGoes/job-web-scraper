@@ -1,5 +1,5 @@
 from app.scrapers.bradesco_scraper import BradescoScraper
-from app.integrations.telegram.telegram import enviar_novas_vagas
+from app.services.telegram.telegram_service import enviar_novas_vagas
 
 
 def main():
