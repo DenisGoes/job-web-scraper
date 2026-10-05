@@ -8,6 +8,7 @@ import time
 import traceback
 import telebot
 from app.services.IA.analise.analise_service import AnaliseService
+import json
 
 analise_service = AnaliseService()
 bot = telebot.TeleBot(API_TOKEN)
@@ -68,12 +69,37 @@ def callback(call):
                 bot.answer_callback_query(call.id, "Vaga marcada como rejeitada")
         elif acao == "analisar":
             try:
+                print("=" * 50)
+                print("INICIANDO ANÁLISE")
+                print(f"Vaga ID: {vaga.id}")
+                print(f"Título: {vaga.titulo}")
+
                 analise = analise_service.analisar(vaga)
+
+                print("ANÁLISE RECEBIDA DO GEMINI:")
+                print(analise)
+
+                print("TIPO DA ANÁLISE:")
+                print(type(analise))
+
+                mensagem = json.dumps(
+                    analise,
+                    ensure_ascii=False,
+                    indent=2
+                )
+
+                print("MENSAGEM QUE SERÁ ENVIADA AO TELEGRAM:")
+                print(mensagem)
+
+                print("ENVIANDO MENSAGEM...")
 
                 bot.send_message(
                     call.message.chat.id,
-                    analise
+                    mensagem
                 )
+
+                print("MENSAGEM ENVIADA COM SUCESSO")
+                print("=" * 50)
 
                 bot.answer_callback_query(
                     call.id,
@@ -81,12 +107,18 @@ def callback(call):
                 )
 
             except Exception as e:
-                print(f"Erro ao gerar análise da vaga {vaga.id}: {e}")
+                print("=" * 50)
+                print(f"ERRO AO GERAR ANÁLISE DA VAGA {vaga.id}")
+                print(f"Erro: {e}")
+                traceback.print_exc()
+                print("=" * 50)
 
                 bot.answer_callback_query(
                     call.id,
                     "Erro ao gerar análise."
                 )
+
+
 
     except Exception:
         traceback.print_exc()
