@@ -24,14 +24,6 @@ bot = telebot.TeleBot(API_TOKEN)
 @bot.callback_query_handler(func=lambda call: True)
 def callback(call):
 
-    try:
-        bot.answer_callback_query(
-            call.id,
-            "⏳ Processando..."
-        )
-    except Exception:
-        pass
-
     session = SessionLocal()
 
     try:
@@ -39,6 +31,10 @@ def callback(call):
             acao, vaga_id = call.data.split(":")
             vaga_id = int(vaga_id)
         except (ValueError, AttributeError):
+            bot.answer_callback_query(
+                call.id,
+                "❌ Ação inválida."
+            )
             return
 
         vaga = (
@@ -49,9 +45,18 @@ def callback(call):
         )
 
         if not vaga:
+            bot.answer_callback_query(
+                call.id,
+                "❌ Vaga não encontrada."
+            )
             return
 
         if acao == "analisar":
+
+            bot.answer_callback_query(
+                call.id,
+                "⏳ Processando análise..."
+            )
 
             try:
                 analise = analise_service.analisar(vaga)
@@ -79,9 +84,9 @@ def callback(call):
                 traceback.print_exc()
 
                 try:
-                    bot.send_message(
-                        call.message.chat.id,
-                        "❌ Ocorreu um erro ao gerar a análise."
+                    bot.answer_callback_query(
+                        call.id,
+                        "❌ Erro ao gerar análise."
                     )
                 except Exception:
                     pass
@@ -89,18 +94,21 @@ def callback(call):
         elif acao == "salva":
 
             if vaga.status == "salva":
-                bot.send_message(
-                    call.message.chat.id,
-                    "Essa vaga já está salva."
+
+                bot.answer_callback_query(
+                    call.id,
+                    "⭐ Essa vaga já está salva."
                 )
 
             elif vaga.status == "aplicada":
-                bot.send_message(
-                    call.message.chat.id,
-                    "Essa vaga já foi aplicada."
+
+                bot.answer_callback_query(
+                    call.id,
+                    "✅ Essa vaga já foi aplicada."
                 )
 
             else:
+
                 vaga.status = "salva"
                 vaga.remover_em = (
                     datetime.now(timezone.utc)
@@ -109,20 +117,22 @@ def callback(call):
 
                 session.commit()
 
-                bot.send_message(
-                    call.message.chat.id,
-                    "⭐ Vaga marcada como salva."
+                bot.answer_callback_query(
+                    call.id,
+                    "⭐ Vaga salva!"
                 )
 
         elif acao == "aplicada":
 
             if vaga.status == "aplicada":
-                bot.send_message(
-                    call.message.chat.id,
-                    "Essa vaga já foi aplicada."
+
+                bot.answer_callback_query(
+                    call.id,
+                    "✅ Essa vaga já foi aplicada."
                 )
 
             else:
+
                 vaga.status = "aplicada"
                 vaga.remover_em = (
                     datetime.now(timezone.utc)
@@ -131,9 +141,9 @@ def callback(call):
 
                 session.commit()
 
-                bot.send_message(
-                    call.message.chat.id,
-                    "✅ Vaga marcada como aplicada."
+                bot.answer_callback_query(
+                    call.id,
+                    "✅ Vaga marcada como aplicada!"
                 )
 
         elif acao == "rejeitada":
@@ -146,6 +156,7 @@ def callback(call):
             )
 
             if vaga.telegram_message_id:
+
                 try:
                     bot.delete_message(
                         CANAL_ID,
@@ -161,9 +172,30 @@ def callback(call):
 
             session.commit()
 
+            bot.answer_callback_query(
+                call.id,
+                "❌ Vaga rejeitada."
+            )
+
+        else:
+
+            bot.answer_callback_query(
+                call.id,
+                "❌ Ação desconhecida."
+            )
+
     except Exception:
+
         session.rollback()
         traceback.print_exc()
+
+        try:
+            bot.answer_callback_query(
+                call.id,
+                "❌ Ocorreu um erro."
+            )
+        except Exception:
+            pass
 
     finally:
         session.close()
@@ -216,6 +248,7 @@ def enviar_vaga(vaga, max_tentativas=3):
                 time.sleep(retry_after + 1)
 
             else:
+
                 print(
                     f"Erro ao enviar vaga {vaga.id}: {e}"
                 )
@@ -223,6 +256,7 @@ def enviar_vaga(vaga, max_tentativas=3):
                 return False
 
         except Exception:
+
             traceback.print_exc()
             return False
 
@@ -254,8 +288,10 @@ def enviar_novas_vagas():
             time.sleep(1.5)
 
     except Exception:
+
         session.rollback()
         traceback.print_exc()
 
     finally:
+
         session.close()
