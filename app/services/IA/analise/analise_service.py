@@ -21,14 +21,22 @@ MODELOS_GEMINI = [
 class AnaliseService:
 
     def __init__(self):
+
         if not GEMINI_API_KEY:
-            raise ValueError("GEMINI_API_KEY não configurada.")
+            raise ValueError(
+                "GEMINI_API_KEY não configurada."
+            )
 
         self.client = genai.Client(
             api_key=GEMINI_API_KEY
         )
 
-        base_dir = Path(__file__).resolve().parent.parent
+        base_dir = (
+            Path(__file__)
+            .resolve()
+            .parent
+            .parent
+        )
 
         caminho_curriculo = (
             base_dir
@@ -39,11 +47,15 @@ class AnaliseService:
 
         if not caminho_curriculo.exists():
             raise FileNotFoundError(
-                f"Currículo não encontrado: {caminho_curriculo}"
+                f"Currículo não encontrado: "
+                f"{caminho_curriculo}"
             )
 
-        self.curriculo = caminho_curriculo.read_text(
-            encoding="utf-8"
+        self.curriculo = (
+            caminho_curriculo
+            .read_text(
+                encoding="utf-8"
+            )
         )
 
     def analisar(self, vaga):
@@ -353,12 +365,16 @@ Utilize exatamente esta estrutura:
                     f"Tentando modelo Gemini: {modelo}"
                 )
 
-                response = self.client.models.generate_content(
-                    model=modelo,
-                    contents=[prompt],
-                    config=types.GenerateContentConfig(
-                        temperature=0.2,
-                        response_mime_type="application/json"
+                response = (
+                    self.client
+                    .models
+                    .generate_content(
+                        model=modelo,
+                        contents=[prompt],
+                        config=types.GenerateContentConfig(
+                            temperature=0.2,
+                            response_mime_type="application/json"
+                        )
                     )
                 )
 
@@ -371,9 +387,13 @@ Utilize exatamente esta estrutura:
                     response.text
                 )
 
-                if not isinstance(resultado, dict):
+                if not isinstance(
+                    resultado,
+                    dict
+                ):
                     raise ValueError(
-                        "O Gemini não retornou um objeto JSON válido."
+                        "O Gemini não retornou "
+                        "um objeto JSON válido."
                     )
 
                 print(
@@ -393,6 +413,6 @@ Utilize exatamente esta estrutura:
                 continue
 
         raise RuntimeError(
-            f"Todos os modelos Gemini falharam. "
+            "Todos os modelos Gemini falharam. "
             f"Último erro: {ultimo_erro}"
         )
