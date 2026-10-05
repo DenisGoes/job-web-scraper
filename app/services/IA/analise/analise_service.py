@@ -7,6 +7,17 @@ from google.genai import types
 from app.config.settings import GEMINI_API_KEY
 
 
+MODELOS_GEMINI = [
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "gemini-3.1-flash-lite-preview",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-3-flash-preview",
+]
+
+
 class AnaliseService:
 
     def __init__(self):
@@ -332,35 +343,56 @@ Utilize exatamente esta estrutura:
 }}
 """
 
-        try:
-            response = self.client.models.generate_content(
-                model="gemini-3-flash-preview",
-                contents=[prompt],
-                config=types.GenerateContentConfig(
-                    temperature=0.2,
-                    response_mime_type="application/json"
+        ultimo_erro = None
+
+        for modelo in MODELOS_GEMINI:
+
+            try:
+
+                print(
+                    f"Tentando modelo Gemini: {modelo}"
                 )
-            )
-        except Exception as e:
-            raise RuntimeError(
-                f"Erro ao chamar Gemini: {e}"
-            ) from e
 
-        if not response.text:
-            raise ValueError(
-                "O Gemini não retornou nenhum conteúdo."
-            )
+                response = self.client.models.generate_content(
+                    model=modelo,
+                    contents=[prompt],
+                    config=types.GenerateContentConfig(
+                        temperature=0.2,
+                        response_mime_type="application/json"
+                    )
+                )
 
-        try:
-            resultado = json.loads(response.text)
-        except json.JSONDecodeError as e:
-            raise ValueError(
-                f"O Gemini retornou um JSON inválido: {e}"
-            ) from e
+                if not response.text:
+                    raise ValueError(
+                        "O Gemini não retornou nenhum conteúdo."
+                    )
 
-        if not isinstance(resultado, dict):
-            raise ValueError(
-                "O Gemini não retornou um objeto JSON válido."
-            )
+                resultado = json.loads(
+                    response.text
+                )
 
-        return resultado
+                if not isinstance(resultado, dict):
+                    raise ValueError(
+                        "O Gemini não retornou um objeto JSON válido."
+                    )
+
+                print(
+                    f"Modelo Gemini utilizado: {modelo}"
+                )
+
+                return resultado
+
+            except Exception as e:
+
+                ultimo_erro = e
+
+                print(
+                    f"Modelo {modelo} falhou: {e}"
+                )
+
+                continue
+
+        raise RuntimeError(
+            f"Todos os modelos Gemini falharam. "
+            f"Último erro: {ultimo_erro}"
+        )
