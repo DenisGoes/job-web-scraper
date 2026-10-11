@@ -384,31 +384,63 @@ class LinkedinScraper(BaseScraper):
                 proxima = self.page.get_by_role(
                     "button", name=re.compile("Próxima|Next", re.I)
                 )
-                if (
-                    pagina + 1 >= MAX_PAGINAS
-                ):
+                if pagina + 1 >= MAX_PAGINAS:
                     break
 
-                if proxima.count() and proxima.is_enabled():
+                if not cards_publicos:
+                    if not proxima.count() or not proxima.is_enabled():
+                        break
                     proxima.click()
-                elif cards_publicos:
-                    # A busca pública frequentemente não renderiza o botão
-                    # Próxima. Nesse caso, a paginação do LinkedIn usa `start`.
-                    inicio = (pagina + 1) * MAX_VAGAS_POR_PAGINA
-                    separador = "&" if "?" in URL_BUSCA else "?"
-                    self.page.goto(
-                        f"{URL_BUSCA}{separador}start={inicio}",
-                        wait_until="domcontentloaded",
-                        timeout=30000,
-                    )
                 else:
-                    break
+                    ids_atuais = tuple(
+                        item["vaga_id"] for item in dados_cards
+                    )
+                    mudou_de_pagina = False
+                    paginacao = self.page.locator(
+                        ".artdeco-pagination, nav[aria-label*='Pagination'], "
+                        "nav[aria-label*='paginação']"
+                    )
+                    controles = [proxima]
+                    botao_numero = paginacao.get_by_role(
+                        "button",
+                        name=re.compile(
+                            r"^(?:Page|Página)\s+" + str(pagina + 2) + r"$",
+                            re.I,
+                        )
+                    )
+                    if botao_numero.count():
+                        controles.append(botao_numero)
 
-                try:
-                    self.page.wait_for_selector(seletor_atual, timeout=10000)
-                except Exception:
-                    print(f"A página {pagina + 2} não carregou cards; encerrando.")
-                    break
-                self.page.wait_for_timeout(1500)
+                    for controle in controles:
+                        if not controle.count() or not controle.is_enabled():
+                            continue
+                        controle.click()
+                        for _ in range(20):
+                            self.page.wait_for_timeout(500)
+                            novos_cards = self._ler_cards_publicos(
+                                self.page.locator(cards_publicos_seletor)
+                            )
+                            novos_ids = tuple(
+                                item["vaga_id"] for item in novos_cards
+                            )
+                            if novos_ids and novos_ids != ids_atuais:
+                                mudou_de_pagina = True
+                                break
+                        if mudou_de_pagina:
+                            break
+                    if not mudou_de_pagina:
+                        print(
+                            f"Não consegui carregar a página {pagina + 2} pelos "
+                            "botões de paginação; encerrando para não repetir vagas."
+                        )
+                        break
+
+                if not cards_publicos:
+                    try:
+                        self.page.wait_for_selector(seletor_atual, timeout=10000)
+                    except Exception:
+                        print(f"A página {pagina + 2} não carregou cards; encerrando.")
+                        break
+                self.page.wait_for_timeout(1000)
         finally:
             self.fechar_navegador()
