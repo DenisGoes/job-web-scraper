@@ -788,7 +788,12 @@ def enviar_novas_vagas():
             .all()
         )
 
-        for vaga in vagas:
+        for indice, vaga in enumerate(vagas, start=1):
+
+            print(
+                f"Enviando vaga {indice}/{len(vagas)} ao Telegram: "
+                f"{vaga.titulo}"
+            )
 
             sucesso = enviar_vaga(
                 vaga

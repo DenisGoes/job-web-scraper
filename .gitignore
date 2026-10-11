@@ -13,6 +13,7 @@ cookies/
 **/cookies/
 storage_state.json
 auth.json
+linkedin_log.json
 
 
 playwright-report/

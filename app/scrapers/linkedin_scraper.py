@@ -26,9 +26,35 @@ class LinkedinScraper(BaseScraper):
     def _storage_state(self):
         if LINKEDIN_LOG:
             try:
-                return json.loads(LINKEDIN_LOG)
-            except (json.JSONDecodeError, TypeError):
-                return LINKEDIN_LOG
+                estado = json.loads(LINKEDIN_LOG)
+            except (json.JSONDecodeError, TypeError) as erro:
+                raise RuntimeError(
+                    "LINKEDIN_LOG não contém JSON válido. Cole no secret o "
+                    "conteúdo completo de linkedin_log.json."
+                ) from erro
+
+            if not isinstance(estado, dict):
+                raise RuntimeError("LINKEDIN_LOG precisa ser um JSON de storage_state.")
+
+            cookies = estado.get("cookies", [])
+            if not isinstance(cookies, list):
+                cookies = []
+            tem_cookie_sessao = any(
+                cookie.get("name") == "li_at"
+                for cookie in cookies
+                if isinstance(cookie, dict)
+            )
+            print(
+                "LINKEDIN_LOG recebido: "
+                f"{len(cookies)} cookies; cookie de autenticação li_at: "
+                f"{'presente' if tem_cookie_sessao else 'ausente'}."
+            )
+            if not tem_cookie_sessao:
+                raise RuntimeError(
+                    "LINKEDIN_LOG foi recebido, mas não contém o cookie li_at. "
+                    "Gere um novo estado de sessão depois de entrar no LinkedIn."
+                )
+            return estado
 
         opcoes = [
             BASE_DIR / "cookies" / "linkedin_log.json",
@@ -178,7 +204,13 @@ class LinkedinScraper(BaseScraper):
         except Exception as erro:
             print(f"Não foi possível abrir os detalhes da vaga {vaga_id}: {erro}")
 
-        descricao = self._descricao(titulo)
+        if dados.get("publico"):
+            descricao = (
+                "Descrição completa indisponível na busca pública do LinkedIn. "
+                "Consulte a vaga no link."
+            )
+        else:
+            descricao = self._descricao(titulo)
         if not descricao_relevante(descricao):
             return
 
@@ -211,7 +243,12 @@ class LinkedinScraper(BaseScraper):
     def executar(self):
         self.iniciar_navegador(storage_state=self._storage_state())
         try:
-            self.page.goto(URL_BUSCA, wait_until="domcontentloaded")
+            self.page.set_default_timeout(10000)
+            self.page.goto(
+                URL_BUSCA,
+                wait_until="domcontentloaded",
+                timeout=30000,
+            )
             # O HTML atual repete componentkey no botão externo e na div interna.
             # Restringir ao botão seleciona um único card por vaga.
             cards_seletor = "[role='button'][componentkey^='job-card-component-ref-']"
@@ -261,6 +298,10 @@ class LinkedinScraper(BaseScraper):
 
                 for indice, dados in enumerate(dados_cards, start=1):
                     try:
+                        print(
+                            f"Processando vaga {indice}/{len(dados_cards)}: "
+                            f"{dados['titulo']}"
+                        )
                         self._processar_card(dados)
                     except Exception as erro:
                         print(f"Erro ao processar card {indice}: {erro}")
