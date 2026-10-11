@@ -85,10 +85,10 @@ class InfojobsScraper(BaseScraper):
                     if not titulo_relevante(titulo):
                         continue
 
-                    descricao_locator = self.page.locator("div.text-medium").first
-
-                    descricao_locator.wait_for(state="visible", timeout=10000)
-                    descricao = descricao_locator.text_content()
+                    # A descrição precisa pertencer ao card da vaga atual;
+                    # buscar a primeira da página reutilizava texto de outra vaga.
+                    descricao_locator = card.locator("div.text-medium").first
+                    descricao = safe_text(descricao_locator)
 
                     if not descricao_relevante(descricao):
                         continue

@@ -33,6 +33,7 @@ class SantanderScraper(BaseScraper):
 
                     titulo = safe_text(card.locator('[data-automation-id="jobTitle"]'))
                     if not titulo_relevante(titulo):
+                        print(f"Título rejeitado pelo filtro: {titulo}")
                         continue
                     vaga_id = safe_text(card.locator('[data-automation-id="subtitle"] li'))
                     empresa = "Santander"

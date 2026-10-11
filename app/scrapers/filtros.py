@@ -27,7 +27,7 @@ def safe_text(locator):
         if locator.count() > 0:
             texto = locator.first.text_content()
             if texto:
-                return texto.strip()
+                return re.sub(r"\s+", " ", texto).strip()
     except Exception:
         pass
     return "N/A"
@@ -56,9 +56,44 @@ AREAS_TECNOLOGIA = (
     "sistemas",
     "analista de sistemas",
     "analista de ti",
+    "system analyst",
+    "business systems analyst",
+    "it",
+    "data",
+    "dados",
+    "data analyst",
+    "analista de dados",
+    "data engineer",
+    "engenharia de dados",
+    "data science",
+    "ciencia de dados",
+    "analytics",
+    "business intelligence",
+    "inteligencia de negocios",
+    "bi",
+    "database",
+    "banco de dados",
+    "infraestrutura",
+    "infrastructure",
+    "devops",
+    "cloud",
+    "sre",
+    "redes",
+    "network",
+    "networking",
+    "cybersecurity",
+    "cyber security",
+    "seguranca da informacao",
+    "it support",
+    "suporte de ti",
+    "service desk",
+    "help desk",
+    "suporte tecnico",
     "tecnologia",
     "tecnologia da informacao",
     "qa",
+    "analista de qualidade",
+    "quality analyst",
     "quality assurance",
     "testes de software",
     "tester",
@@ -117,12 +152,28 @@ NIVEIS_FORA_DO_ALVO = (
     "senior",
     "sr",
     "especialista",
+    "specialist",
+    # Abreviação usada pelo Santander para cargos de especialista.
+    "spec",
+    "esp",
+    "architect",
+    "arquiteto",
+    "arquiteta",
     "tech lead",
     "team lead",
+    "lead",
     "principal",
     "gerente",
+    "manager",
+    "head",
+    "director",
+    "diretor",
     "coordenador",
     "supervisor",
+    # No Santander, Analyst/Engineer III e IV indicam níveis acima do início
+    # de carreira. Mantemos II elegível para não apertar demais o filtro.
+    "iii",
+    "iv",
 )
 
 

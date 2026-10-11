@@ -28,6 +28,7 @@ class ItauScraper(BaseScraper):
                     link_el = card.locator("a.results__item-link")
                     titulo = safe_text(link_el.locator("h2.results__item-heading"))
                     if not titulo_relevante(titulo):
+                        print(f"Título rejeitado pelo filtro: {titulo}")
                         continue
                     vaga_id = link_el.get_attribute("data-job-id")
                     empresa = "Itaú"

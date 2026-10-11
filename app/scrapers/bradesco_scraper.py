@@ -31,6 +31,7 @@ class BradescoScraper(BaseScraper):
 
                     titulo = safe_text(titulo_el)
                     if not titulo_relevante(titulo):
+                        print(f"Título rejeitado pelo filtro: {titulo}")
                         continue
                     vaga_id = titulo_el.locator("p").get_attribute("data-tag")
                     empresa = "Bradesco"

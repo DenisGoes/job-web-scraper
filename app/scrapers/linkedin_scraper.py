@@ -47,7 +47,7 @@ class LinkedinScraper(BaseScraper):
     def _texto(locator, padrao=""):
         try:
             if locator.count() > 0:
-                return locator.first.inner_text().strip()
+                return re.sub(r"\s+", " ", locator.first.inner_text()).strip()
         except Exception:
             pass
         return padrao
@@ -96,7 +96,8 @@ class LinkedinScraper(BaseScraper):
 
         return "Descrição completa não carregada pelo LinkedIn. Consulte a vaga no link."
 
-    def _processar_card(self, card):
+    def _ler_card(self, card):
+        """Captura os dados da listagem antes de abrir detalhes e alterar o DOM."""
         vaga_id = self._id_vaga(card)
         if not vaga_id:
             print("Card do LinkedIn sem ID; ignorando.")
@@ -113,6 +114,51 @@ class LinkedinScraper(BaseScraper):
         empresa = self._texto(paragrafos.nth(1), "Empresa não informada")
         localidade = self._texto(paragrafos.nth(2), "Localidade não informada")
 
+        return {
+            "vaga_id": vaga_id,
+            "titulo": titulo,
+            "empresa": empresa,
+            "localidade": localidade,
+            "publico": False,
+        }
+
+    def _ler_card_publico(self, link):
+        """Lê os cards exibidos na busca pública quando não há sessão ativa."""
+        href = link.get_attribute("href") or ""
+        match = re.search(r"/jobs/view/(\d+)", href)
+        if not match:
+            return None
+
+        card = link.locator("xpath=ancestor::li[1]")
+        if not card.count():
+            card = link.locator("xpath=ancestor::div[contains(@class, 'base-card')][1]")
+
+        titulo = self._texto(card.locator(".base-search-card__title"))
+        empresa = self._texto(
+            card.locator(".base-search-card__subtitle"), "Empresa não informada"
+        )
+        localidade = self._texto(
+            card.locator(".job-search-card__location"), "Localidade não informada"
+        )
+        if not titulo:
+            titulo = self._texto(link)
+        if not titulo:
+            return None
+
+        return {
+            "vaga_id": match.group(1),
+            "titulo": titulo,
+            "empresa": empresa,
+            "localidade": localidade,
+            "publico": True,
+        }
+
+    def _processar_card(self, dados):
+        vaga_id = dados["vaga_id"]
+        titulo = dados["titulo"]
+        empresa = dados["empresa"]
+        localidade = dados["localidade"]
+
         # O cartão novo usa classes geradas; o componentkey contém o ID estável.
         link_vaga = f"https://www.linkedin.com/jobs/view/{vaga_id}/"
 
@@ -120,9 +166,15 @@ class LinkedinScraper(BaseScraper):
             return
 
         try:
-            card.scroll_into_view_if_needed()
-            card.click()
-            self.page.wait_for_timeout(1200)
+            # Reencontra o card pelo ID após eventuais atualizações da listagem.
+            if not dados.get("publico"):
+                card = self.page.locator(
+                    f"[role='button'][componentkey='job-card-component-ref-{vaga_id}']"
+                ).first
+                card.wait_for(state="attached", timeout=5000)
+                card.scroll_into_view_if_needed(timeout=5000)
+                card.click(timeout=5000)
+                self.page.wait_for_timeout(1200)
         except Exception as erro:
             print(f"Não foi possível abrir os detalhes da vaga {vaga_id}: {erro}")
 
@@ -163,29 +215,59 @@ class LinkedinScraper(BaseScraper):
             # O HTML atual repete componentkey no botão externo e na div interna.
             # Restringir ao botão seleciona um único card por vaga.
             cards_seletor = "[role='button'][componentkey^='job-card-component-ref-']"
+            cards_publicos_seletor = "a[href*='/jobs/view/']"
+            cards_publicos = False
             try:
-                self.page.wait_for_selector(cards_seletor, timeout=30000)
+                self.page.wait_for_selector(cards_seletor, timeout=10000)
             except Exception as erro:
-                if "/login" in self.page.url:
-                    raise RuntimeError(
-                        "Sessão do LinkedIn expirada. Gere um novo LINKEDIN_LOG."
-                    ) from erro
-                print("Nenhum card de vaga apareceu na busca do LinkedIn.")
-                print(self._texto(self.page.locator("body"))[:1000])
-                return
+                try:
+                    self.page.wait_for_selector(cards_publicos_seletor, timeout=10000)
+                    cards_publicos = True
+                    print(
+                        "LinkedIn sem sessão autenticada; usando os cards públicos "
+                        "da busca."
+                    )
+                except Exception:
+                    corpo = self._texto(self.page.locator("body"))[:1000]
+                    if "/login" in self.page.url or "Entre para criar um alerta" in corpo:
+                        raise RuntimeError(
+                            "LinkedIn exibiu a busca pública, mas não carregou os "
+                            "cards de vagas. Atualize o secret LINKEDIN_LOG no GitHub."
+                        ) from erro
+                    print("Nenhum card de vaga apareceu na busca do LinkedIn.")
+                    print(corpo)
+                    return
 
             for pagina in range(MAX_PAGINAS):
-                cards = self.page.locator(cards_seletor)
+                seletor_atual = cards_publicos_seletor if cards_publicos else cards_seletor
+                cards = self.page.locator(seletor_atual)
                 quantidade = min(cards.count(), MAX_VAGAS_POR_PAGINA)
                 print(f"Página {pagina + 1}: {quantidade} cards do LinkedIn.")
 
+                # Ler todos os dados antes dos cliques: abrir um detalhe pode
+                # fazer o LinkedIn recriar ou virtualizar os cards da listagem.
+                dados_cards = []
                 for indice in range(quantidade):
                     try:
-                        self._processar_card(cards.nth(indice))
+                        dados = (
+                            self._ler_card_publico(cards.nth(indice))
+                            if cards_publicos
+                            else self._ler_card(cards.nth(indice))
+                        )
+                        if dados:
+                            dados_cards.append(dados)
                     except Exception as erro:
-                        print(f"Erro ao processar card {indice + 1}: {erro}")
+                        print(f"Erro ao ler card {indice + 1}: {erro}")
 
-                proxima = self.page.get_by_role("button", name=re.compile("Próxima", re.I))
+                for indice, dados in enumerate(dados_cards, start=1):
+                    try:
+                        self._processar_card(dados)
+                    except Exception as erro:
+                        print(f"Erro ao processar card {indice}: {erro}")
+
+                proxima = self.page.get_by_role(
+                    "button", name=re.compile("Próxima|Next", re.I)
+                )
                 if (
                     pagina + 1 >= MAX_PAGINAS
                     or not proxima.count()
