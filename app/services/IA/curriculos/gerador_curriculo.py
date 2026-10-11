@@ -34,7 +34,7 @@ class GeradorCurriculo:
             Descrição: {vaga.descricao or 'Não informada'}
             """
         response = self.analise_service.client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.8-flash",
             contents=[prompt],
             config=types.GenerateContentConfig(temperature=0.2),
         )
