@@ -154,20 +154,34 @@ class LinkedinScraper(BaseScraper):
         """Extrai os cards públicos em uma avaliação do DOM, sem waits por card."""
         registros = cards.evaluate_all(
             """items => items.map(item => {
-                const card = item.closest('[componentkey^="job-card-component-ref-"]')
+                let card = item.closest('[componentkey^="job-card-component-ref-"]')
                     || item.closest('[class*="base-card"]')
                     || item.closest('li')
                     || item.parentElement;
                 const texto = node => (node?.innerText || '')
                     .replace(/\\s+/g, ' ').trim();
-                const componentKey = card?.getAttribute('componentkey')
-                    || item.getAttribute('componentkey') || '';
-                const href = item.href || item.querySelector('a[href]')?.href || '';
-                const bloco = card?.innerText || item.innerText || '';
-                const linhas = bloco.split(/\\n+/)
+                const linhasDe = node => (node?.innerText || '')
+                    .split(/\\n+/)
                     .map(linha => linha.replace(/\\s+/g, ' ').trim())
                     .filter(Boolean)
                     .filter((linha, indice, todas) => indice === 0 || linha !== todas[indice - 1]);
+                const temChaveDeCard = Boolean(
+                    item.closest('[componentkey^="job-card-component-ref-"]')
+                );
+                if (!temChaveDeCard) {
+                    let ancestral = item.parentElement;
+                    for (let nivel = 0; ancestral && nivel < 6; nivel++, ancestral = ancestral.parentElement) {
+                        const linhasAncestral = linhasDe(ancestral);
+                        if (linhasAncestral.length >= 3 && linhasAncestral.length <= 12) {
+                            card = ancestral;
+                            break;
+                        }
+                    }
+                }
+                const componentKey = card?.getAttribute('componentkey')
+                    || item.getAttribute('componentkey') || '';
+                const href = item.href || item.querySelector('a[href]')?.href || '';
+                const linhas = linhasDe(card) || linhasDe(item);
                 const paragrafos = [...(card?.querySelectorAll('p') || [])];
                 const tituloParagrafo = paragrafos[0];
                 const titulo = texto(tituloParagrafo?.querySelector(
@@ -230,7 +244,7 @@ class LinkedinScraper(BaseScraper):
                 "LinkedIn retornou cards, mas não consegui extrair título/ID. "
                 f"Amostra: {registros[0]}"
             )
-        return list(unicos.values())
+        return list(unicos.values())[:MAX_VAGAS_POR_PAGINA]
 
     def _processar_card(self, dados):
         vaga_id = dados["vaga_id"]
