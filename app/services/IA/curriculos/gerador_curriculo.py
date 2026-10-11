@@ -12,30 +12,59 @@ class GeradorCurriculo:
 
     def __init__(self):
         self.analise_service = AnaliseService()
+        self.imagem_modelo = (
+            Path(__file__).resolve().parent
+            / "curriculo_base"
+            / "Modelo_curriculo.png"
+        )
 
     def gerar_texto(self, vaga, analise):
-        prompt = f"""Personalize o currículo-base para a vaga descrita abaixo.
-            Use português brasileiro e mantenha somente fatos explicitamente presentes
-            no currículo-base. Não invente experiências, tecnologias, resultados, datas,
-            certificações ou métricas. Não copie requisitos da vaga como se fossem
-            competências do candidato. Omita informações ausentes. Retorne o currículo
-            em texto simples, com seções e bullets claros, sem comentários sobre o processo.
+        if not self.imagem_modelo.exists():
+            raise FileNotFoundError(
+                f"Imagem modelo do currículo não encontrada: {self.imagem_modelo}"
+            )
 
-            CURRÍCULO-BASE:
-            {self.analise_service.curriculo}
+        prompt = f"""Personalize o currículo-base para a vaga informada.
 
-            ANÁLISE DA VAGA:
-            {analise}
+Use a imagem anexada somente como REFERÊNCIA VISUAL de layout e organização.
+Siga sua hierarquia aproximada: nome e contatos no topo; resumo profissional;
+habilidades; experiência e projetos; educação; atividades/formação complementar.
+Use títulos claros, conteúdo conciso e bullets. Retorne em texto Markdown simples,
+com títulos usando # e ## e listas usando -. Não gere comentários sobre o processo.
 
-            DADOS DA VAGA:
-            Cargo: {vaga.titulo}
-            Empresa: {vaga.empresa or 'Não informada'}
-            Localidade: {vaga.localidade or 'Não informada'}
-            Descrição: {vaga.descricao or 'Não informada'}
-            """
+REGRAS DE FIDELIDADE:
+- Use português brasileiro.
+- Use somente fatos explicitamente presentes no currículo-base.
+- A imagem é apenas um modelo visual: nunca copie nomes, contatos, cargos ou
+  textos de exemplo que apareçam nela.
+- Não invente experiências, tecnologias, resultados, datas, certificações ou métricas.
+- Não apresente requisitos da vaga como competências do candidato.
+- Omita informações ausentes; não preencha lacunas com conteúdo fictício.
+- Use a análise para priorizar e reorganizar informações verdadeiras, sem alterar fatos.
+
+CURRÍCULO-BASE:
+{self.analise_service.curriculo}
+
+ANÁLISE DA VAGA:
+{analise}
+
+DADOS DA VAGA:
+Cargo: {vaga.titulo}
+Empresa: {vaga.empresa or 'Não informada'}
+Localidade: {vaga.localidade or 'Não informada'}
+Descrição: {vaga.descricao or 'Não informada'}
+"""
+
+        image_bytes = self.imagem_modelo.read_bytes()
         response = self.analise_service.client.models.generate_content(
             model="gemini-3.8-flash",
-            contents=[prompt],
+            contents=[
+                types.Part.from_bytes(
+                    data=image_bytes,
+                    mime_type="image/png",
+                ),
+                prompt,
+            ],
             config=types.GenerateContentConfig(temperature=0.2),
         )
         if not response.text or not response.text.strip():
