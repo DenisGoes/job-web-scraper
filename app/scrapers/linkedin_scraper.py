@@ -148,36 +148,37 @@ class LinkedinScraper(BaseScraper):
             "publico": False,
         }
 
-    def _ler_card_publico(self, link):
-        """Lê os cards exibidos na busca pública quando não há sessão ativa."""
-        href = link.get_attribute("href") or ""
-        match = re.search(r"/jobs/view/(\d+)", href)
-        if not match:
-            return None
-
-        card = link.locator("xpath=ancestor::li[1]")
-        if not card.count():
-            card = link.locator("xpath=ancestor::div[contains(@class, 'base-card')][1]")
-
-        titulo = self._texto(card.locator(".base-search-card__title"))
-        empresa = self._texto(
-            card.locator(".base-search-card__subtitle"), "Empresa não informada"
+    def _ler_cards_publicos(self, cards):
+        """Extrai os cards públicos em uma avaliação do DOM, sem waits por card."""
+        registros = cards.evaluate_all(
+            """links => links.map(link => {
+                const card = link.closest('li')
+                    || link.closest('[class*="base-card"]')
+                    || link.parentElement;
+                const texto = node => (node?.innerText || '')
+                    .replace(/\\s+/g, ' ').trim();
+                const href = link.href || '';
+                const id = href.match(/\\/jobs\\/view\\/(\\d+)/)?.[1];
+                return {
+                    vaga_id: id,
+                    titulo: texto(card?.querySelector(
+                        '.base-search-card__title, h3'
+                    )) || texto(link),
+                    empresa: texto(card?.querySelector(
+                        '.base-search-card__subtitle, h4'
+                    )) || 'Empresa não informada',
+                    localidade: texto(card?.querySelector(
+                        '.job-search-card__location'
+                    )) || 'Localidade não informada',
+                    publico: true
+                };
+            })"""
         )
-        localidade = self._texto(
-            card.locator(".job-search-card__location"), "Localidade não informada"
-        )
-        if not titulo:
-            titulo = self._texto(link)
-        if not titulo:
-            return None
-
-        return {
-            "vaga_id": match.group(1),
-            "titulo": titulo,
-            "empresa": empresa,
-            "localidade": localidade,
-            "publico": True,
-        }
+        return [
+            registro
+            for registro in registros
+            if registro.get("vaga_id") and registro.get("titulo")
+        ]
 
     def _processar_card(self, dados):
         vaga_id = dados["vaga_id"]
@@ -283,18 +284,21 @@ class LinkedinScraper(BaseScraper):
 
                 # Ler todos os dados antes dos cliques: abrir um detalhe pode
                 # fazer o LinkedIn recriar ou virtualizar os cards da listagem.
-                dados_cards = []
-                for indice in range(quantidade):
-                    try:
-                        dados = (
-                            self._ler_card_publico(cards.nth(indice))
-                            if cards_publicos
-                            else self._ler_card(cards.nth(indice))
-                        )
-                        if dados:
-                            dados_cards.append(dados)
-                    except Exception as erro:
-                        print(f"Erro ao ler card {indice + 1}: {erro}")
+                if cards_publicos:
+                    dados_cards = self._ler_cards_publicos(
+                        self.page.locator(cards_publicos_seletor)
+                    )
+                else:
+                    dados_cards = []
+                    for indice in range(quantidade):
+                        try:
+                            dados = self._ler_card(cards.nth(indice))
+                            if dados:
+                                dados_cards.append(dados)
+                        except Exception as erro:
+                            print(f"Erro ao ler card {indice + 1}: {erro}")
+
+                print(f"Dados lidos: {len(dados_cards)} vagas.")
 
                 for indice, dados in enumerate(dados_cards, start=1):
                     try:
