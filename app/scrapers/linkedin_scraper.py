@@ -395,38 +395,39 @@ class LinkedinScraper(BaseScraper):
                     ids_atuais = tuple(
                         item["vaga_id"] for item in dados_cards
                     )
-                    mudou_de_pagina = False
-                    paginacao = self.page.locator(
-                        ".artdeco-pagination, nav[aria-label*='Pagination'], "
-                        "nav[aria-label*='paginação']"
+                    # A busca atual usa botões próprios de paginação. Primeiro
+                    # selecionamos o indicador da página desejada (0-based); o
+                    # botão Próxima é fallback se o indicador não estiver visível.
+                    proxima_pagina = pagina + 1
+                    indicador = self.page.locator(
+                        f"[data-testid='pagination-indicator-{proxima_pagina}']"
                     )
-                    controles = [proxima]
-                    botao_numero = paginacao.get_by_role(
-                        "button",
-                        name=re.compile(
-                            r"^(?:Page|Página)\s+" + str(pagina + 2) + r"$",
-                            re.I,
+                    if indicador.count() and indicador.is_enabled():
+                        indicador.click()
+                    else:
+                        proxima = self.page.locator(
+                            "[data-testid='pagination-controls-next-button-visible']"
                         )
-                    )
-                    if botao_numero.count():
-                        controles.append(botao_numero)
+                        if not proxima.count() or not proxima.is_enabled():
+                            print("Botão da próxima página não está disponível.")
+                            break
+                        proxima.click()
 
-                    for controle in controles:
-                        if not controle.count() or not controle.is_enabled():
-                            continue
-                        controle.click()
-                        for _ in range(20):
-                            self.page.wait_for_timeout(500)
-                            novos_cards = self._ler_cards_publicos(
-                                self.page.locator(cards_publicos_seletor)
-                            )
-                            novos_ids = tuple(
-                                item["vaga_id"] for item in novos_cards
-                            )
-                            if novos_ids and novos_ids != ids_atuais:
-                                mudou_de_pagina = True
-                                break
-                        if mudou_de_pagina:
+                    mudou_de_pagina = False
+                    try:
+                        indicador.wait_for(state="visible", timeout=10000)
+                    except Exception:
+                        print(f"Indicador da página {pagina + 2} não apareceu.")
+                        break
+                    for _ in range(20):
+                        self.page.wait_for_timeout(500)
+                        pagina_selecionada = indicador.get_attribute("aria-current")
+                        novos_cards = self._ler_cards_publicos(
+                            self.page.locator(cards_publicos_seletor)
+                        )
+                        novos_ids = tuple(item["vaga_id"] for item in novos_cards)
+                        if pagina_selecionada == "true" and novos_ids and novos_ids != ids_atuais:
+                            mudou_de_pagina = True
                             break
                     if not mudou_de_pagina:
                         print(
