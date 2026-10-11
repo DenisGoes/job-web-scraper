@@ -62,7 +62,10 @@ jobs:
           API_TOKEN: ${{ secrets.API_TOKEN }}
           CANAL_ID: ${{ secrets.CANAL_ID }}
           LINKEDIN_LOG: ${{ secrets.LINKEDIN_LOG }}
-        run: python -m backend.scripts.run_linkedin
+          TOKEN_TELEGRAM_ANALISE: ${{ secrets.TOKEN_TELEGRAM_ANALISE }}
+          CANAL_ID_ANALISE: ${{ secrets.CANAL_ID_ANALISE }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python -m app.jobs.job_linkedin
 
   bradesco:
     name: Scraper Bradesco
