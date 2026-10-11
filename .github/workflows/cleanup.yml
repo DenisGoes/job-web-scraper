@@ -28,4 +28,4 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           API_TOKEN: ${{ secrets.API_TOKEN }}
           CANAL_ID: ${{ secrets.CANAL_ID }}
-        run: python -m backend.scripts.run_cleanup
+        run: python -m app.jobs.job_cleanup

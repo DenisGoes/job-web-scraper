@@ -2,7 +2,7 @@ name: Scraper Vagas
 
 on:
   schedule:
-    - cron: "0 * * * *" # Executa de hora em hora
+    - cron: "17 11,15,19 * * *" # 08:17, 12:17 e 16:17 no horário de Brasília
   workflow_dispatch:
 
 jobs:
