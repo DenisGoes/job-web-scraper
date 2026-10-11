@@ -192,7 +192,7 @@ pip install -r requirements.txt
 Crie o banco de dados:
 
 ```bash
-python -m app.scripts.create_database
+python -m app.jobs.job_create_database
 ```
 
 Inicie a API:
@@ -212,13 +212,13 @@ uvicorn app.main:app --reload
 **InfoJobs**
 
 ```bash
-python -m app.scripts.run_infojobs
+python -m app.jobs.job_infojobs
 ```
 
 **LinkedIn**
 
 ```bash
-python -m app.scripts.run_linkedin
+python -m app.jobs.job_linkedin
 ```
 
 Após a execução, as vagas encontradas serão:

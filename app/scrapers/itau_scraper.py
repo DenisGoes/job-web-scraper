@@ -1,6 +1,6 @@
 from app.scrapers.base_scraper import BaseScraper
 from app.model.vaga import Vaga
-from app.scrapers.filtros import safe_text
+from app.scrapers.filtros import safe_text, titulo_relevante
 
 
 BASE_URL = "https://carreiras.itau.com.br"
@@ -27,6 +27,8 @@ class ItauScraper(BaseScraper):
 
                     link_el = card.locator("a.results__item-link")
                     titulo = safe_text(link_el.locator("h2.results__item-heading"))
+                    if not titulo_relevante(titulo):
+                        continue
                     vaga_id = link_el.get_attribute("data-job-id")
                     empresa = "Itaú"
                     localidade = safe_text(link_el.locator(".job-location"))

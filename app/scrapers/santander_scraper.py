@@ -2,7 +2,7 @@ from urllib.parse import urljoin
 
 from app.scrapers.base_scraper import BaseScraper
 from app.model.vaga import Vaga
-from app.scrapers.filtros import safe_text
+from app.scrapers.filtros import safe_text, titulo_relevante
 
 
 BASE_URL = "https://santander.wd3.myworkdayjobs.com"
@@ -32,6 +32,8 @@ class SantanderScraper(BaseScraper):
                     card = cards.nth(i)
 
                     titulo = safe_text(card.locator('[data-automation-id="jobTitle"]'))
+                    if not titulo_relevante(titulo):
+                        continue
                     vaga_id = safe_text(card.locator('[data-automation-id="subtitle"] li'))
                     empresa = "Santander"
                     localidade = safe_text(card.locator('[data-automation-id="locations"] dd'))

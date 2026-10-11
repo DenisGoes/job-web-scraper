@@ -1,6 +1,6 @@
 from app.scrapers.base_scraper import BaseScraper
 from app.model.vaga import Vaga
-from app.scrapers.filtros import safe_text
+from app.scrapers.filtros import safe_text, titulo_relevante
 from urllib.parse import urljoin
 
 class BradescoScraper(BaseScraper):
@@ -30,6 +30,8 @@ class BradescoScraper(BaseScraper):
                     card = titulo_el.locator("xpath=ancestor::div[contains(@class, 'p-panel')][1]")
 
                     titulo = safe_text(titulo_el)
+                    if not titulo_relevante(titulo):
+                        continue
                     vaga_id = titulo_el.locator("p").get_attribute("data-tag")
                     empresa = "Bradesco"
                     localidade = safe_text(card.locator('[data-tag="displayJobLocation"]'))

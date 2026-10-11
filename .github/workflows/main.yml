@@ -33,10 +33,14 @@ jobs:
           API_TOKEN: ${{ secrets.API_TOKEN }}
           CANAL_ID: ${{ secrets.CANAL_ID }}
           INFOJOBS_LOG: ${{ secrets.INFOJOBS_LOG }}
-        run: python -m backend.scripts.run_infojobs
+          TOKEN_TELEGRAM_ANALISE: ${{ secrets.TOKEN_TELEGRAM_ANALISE }}
+          CANAL_ID_ANALISE: ${{ secrets.CANAL_ID_ANALISE }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python -m app.jobs.job_infojobs
 
   linkedin:
     name: Scraper LinkedIn
+    needs: infojobs
     runs-on: ubuntu-latest
     steps:
       - name: Baixar código
@@ -69,6 +73,7 @@ jobs:
 
   bradesco:
     name: Scraper Bradesco
+    needs: linkedin
     runs-on: ubuntu-latest
     steps:
       - name: Baixar código
@@ -93,11 +98,14 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           API_TOKEN: ${{ secrets.API_TOKEN }}
           CANAL_ID: ${{ secrets.CANAL_ID }}
-          BRADESCO_LOG: ${{ secrets.BRADESCO_LOG }}
-        run: python -m backend.scripts.run_bradesco
+          TOKEN_TELEGRAM_ANALISE: ${{ secrets.TOKEN_TELEGRAM_ANALISE }}
+          CANAL_ID_ANALISE: ${{ secrets.CANAL_ID_ANALISE }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python -m app.jobs.job_bradesco
 
   itau:
     name: Scraper Itaú
+    needs: bradesco
     runs-on: ubuntu-latest
     steps:
       - name: Baixar código
@@ -122,11 +130,14 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           API_TOKEN: ${{ secrets.API_TOKEN }}
           CANAL_ID: ${{ secrets.CANAL_ID }}
-          ITAU_LOG: ${{ secrets.ITAU_LOG }}
-        run: python -m backend.scripts.run_itau
+          TOKEN_TELEGRAM_ANALISE: ${{ secrets.TOKEN_TELEGRAM_ANALISE }}
+          CANAL_ID_ANALISE: ${{ secrets.CANAL_ID_ANALISE }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python -m app.jobs.job_itau
 
   santander:
     name: Scraper Santander
+    needs: itau
     runs-on: ubuntu-latest
     steps:
       - name: Baixar código
@@ -151,5 +162,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           API_TOKEN: ${{ secrets.API_TOKEN }}
           CANAL_ID: ${{ secrets.CANAL_ID }}
-          SANTANDER_LOG: ${{ secrets.SANTANDER_LOG }}
-        run: python -m backend.scripts.run_santander
+          TOKEN_TELEGRAM_ANALISE: ${{ secrets.TOKEN_TELEGRAM_ANALISE }}
+          CANAL_ID_ANALISE: ${{ secrets.CANAL_ID_ANALISE }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python -m app.jobs.job_santander

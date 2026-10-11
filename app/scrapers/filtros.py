@@ -56,6 +56,7 @@ AREAS_TECNOLOGIA = (
     "sistemas",
     "analista de sistemas",
     "analista de ti",
+    "tecnologia",
     "tecnologia da informacao",
     "qa",
     "quality assurance",
