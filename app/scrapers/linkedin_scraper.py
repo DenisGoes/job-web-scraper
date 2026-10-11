@@ -1,7 +1,9 @@
+import hashlib
 import json
 import re
 from html import escape
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 from app.config.settings import LINKEDIN_LOG
 from app.model.vaga import Vaga
@@ -171,20 +173,30 @@ class LinkedinScraper(BaseScraper):
                 const titulo = texto(tituloParagrafo?.querySelector(
                     'span:not([aria-hidden="true"])'
                 )) || texto(tituloParagrafo);
+                const url = new URL(href || location.href, location.origin);
+                const segmentoVaga = url.pathname.match(/\\/jobs\\/view\\/([^/]+)/)?.[1] || '';
                 const id = componentKey.match(/job-card-component-ref-(\\d+)/)?.[1]
-                    || href.match(/\\/jobs\\/view\\/(\\d+)/)?.[1]
-                    || href.match(/currentJobId=(\\d+)/)?.[1];
+                    || card?.getAttribute('data-job-id')
+                    || item.getAttribute('data-job-id')
+                    || url.searchParams.get('currentJobId')
+                    || segmentoVaga.match(/(\\d{6,})$/)?.[1]
+                    || segmentoVaga;
                 const tituloFinal = titulo || texto(card?.querySelector(
                     '.base-search-card__title, h3, [class*="title"]'
                 )) || linhas[0] || texto(item);
                 const localidade = texto(card?.querySelector(
-                    '.job-search-card__location'
-                )) || texto(paragrafos[2]) || linhas.find(linha =>
-                    /\\b(?:SP|RJ|MG|ES|PR|SC|RS|DF|BA|PE|CE|GO|AM|PA|Brasil)\\b|\\b(?:remoto|h[ií]brido)\\b/i.test(linha)
+                    '.job-search-card__location, .base-search-card__location'
+                )) || (componentKey.startsWith('job-card-component-ref-')
+                    ? texto(paragrafos[2])
+                    : '') || linhas.find(linha =>
+                    linha !== tituloFinal
+                    && /\\b(?:SP|RJ|MG|ES|PR|SC|RS|DF|BA|PE|CE|GO|AM|PA|Brasil)\\b|\\b(?:remoto|h[ií]brido|presencial)\\b/i.test(linha)
                 ) || 'Localidade não informada';
                 const empresa = texto(card?.querySelector(
                     '.base-search-card__subtitle, h4'
-                )) || texto(paragrafos[1]) || linhas.find(linha =>
+                )) || (componentKey.startsWith('job-card-component-ref-')
+                    ? texto(paragrafos[1])
+                    : '') || linhas.find(linha =>
                     linha !== tituloFinal
                     && linha !== localidade
                     && !/\\b(?:há|today|yesterday|days? ago|weeks? ago|months? ago)\\b/i.test(linha)
@@ -194,6 +206,7 @@ class LinkedinScraper(BaseScraper):
                     titulo: tituloFinal,
                     empresa,
                     localidade,
+                    href,
                     publico: true
                 };
             })"""
@@ -201,6 +214,15 @@ class LinkedinScraper(BaseScraper):
         unicos = {}
         for registro in registros:
             vaga_id = registro.get("vaga_id")
+            href = registro.get("href") or ""
+            if not vaga_id and "/jobs/view/" in href:
+                partes_url = urlsplit(href)
+                caminho = partes_url.path.rstrip("/")
+                vaga_id = f"li-{hashlib.sha256(caminho.encode()).hexdigest()[:20]}"
+                registro["vaga_id"] = vaga_id
+                registro["link_vaga"] = urlunsplit(
+                    (partes_url.scheme, partes_url.netloc, caminho + "/", "", "")
+                )
             if vaga_id and registro.get("titulo"):
                 unicos[vaga_id] = registro
         if not unicos and registros:
@@ -217,7 +239,9 @@ class LinkedinScraper(BaseScraper):
         localidade = dados["localidade"]
 
         # O cartão novo usa classes geradas; o componentkey contém o ID estável.
-        link_vaga = f"https://www.linkedin.com/jobs/view/{vaga_id}/"
+        link_vaga = dados.get("link_vaga") or (
+            f"https://www.linkedin.com/jobs/view/{vaga_id}/"
+        )
 
         if not titulo or not titulo_relevante(titulo):
             return
