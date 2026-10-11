@@ -387,11 +387,28 @@ class LinkedinScraper(BaseScraper):
                 if pagina + 1 >= MAX_PAGINAS:
                     break
 
+                # A paginação fica depois dos cards e pode estar fora da área
+                # visível. Descer até o rodapé também dispara conteúdo lazy-load.
+                self.page.evaluate(
+                    "window.scrollTo(0, document.body.scrollHeight)"
+                )
+                self.page.wait_for_timeout(700)
+
                 if not cards_publicos:
-                    if not proxima.count() or not proxima.is_enabled():
+                    if not proxima.count():
+                        break
+                    proxima.scroll_into_view_if_needed(timeout=5000)
+                    if not proxima.is_enabled():
                         break
                     proxima.click()
                 else:
+                    lista_paginacao = self.page.locator(
+                        "[data-testid='pagination-controls-list']"
+                    )
+                    if lista_paginacao.count():
+                        lista_paginacao.scroll_into_view_if_needed(timeout=5000)
+                        self.page.wait_for_timeout(300)
+
                     ids_atuais = tuple(
                         item["vaga_id"] for item in dados_cards
                     )
