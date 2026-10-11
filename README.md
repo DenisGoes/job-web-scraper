@@ -48,6 +48,8 @@ O projeto foi criado para solucionar um problema pessoal: o tempo excessivo gast
 - Enviar vagas automaticamente para um canal do Telegram
 - Botões funcionais de **Rejeitada**, **Aplicada** ou **Salva** diretamente no telegram
 - Enviar notificações a cada nova vaga enviada ao Telegram
+- Analisar vagas com Gemini e publicar a análise em um canal dedicado
+- Gerar um currículo personalizado em DOCX a partir da análise e do currículo-base
 
 
 ## 🛠 Tecnologias
@@ -141,6 +143,9 @@ DATABASE_URL=
 # Telegram
 API_TOKEN=
 CANAL_ID=
+TOKEN_TELEGRAM_ANALISE=
+CANAL_ID_ANALISE=
+GEMINI_API_KEY=
 
 # Cookies de sessão do InfoJobs para login
 INFOJOBS_LOG=
@@ -221,6 +226,8 @@ Após a execução, as vagas encontradas serão:
 * armazenadas no banco de dados;
 * disponibilizadas pela API;
 * enviadas automaticamente para o canal do Telegram configurado.
+
+No canal de vagas, use **Gerar análise** para comparar a oportunidade com o currículo-base. A análise é publicada no canal dedicado; o botão **Gerar currículo** cria um DOCX personalizado e o envia ao canal para revisão. Configure um segundo bot como administrador do canal de análises com `TOKEN_TELEGRAM_ANALISE` e `CANAL_ID_ANALISE`; o webhook desse bot fica em `${WEBHOOK_URL}/analise`.
 
 ## 📖 Documentação
 

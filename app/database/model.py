@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from app.database.connection import Base
 
 
@@ -26,4 +26,13 @@ class Vaga(Base):
     remover_em = Column(DateTime(timezone=True), nullable=True)
     ultimo_lembrete = Column(DateTime(timezone=True), nullable=True)
     telegram_message_id = Column(Integer)
+
+
+class AnaliseVaga(Base):
+
+    __tablename__ = "analises_vagas"
+
+    id = Column(Integer, primary_key=True)
+    vaga_id = Column(Integer, ForeignKey("vagas.id"), nullable=False, unique=True)
+    resultado_json = Column(Text, nullable=False)
 

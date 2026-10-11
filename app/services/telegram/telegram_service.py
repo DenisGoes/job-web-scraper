@@ -2,6 +2,11 @@ from datetime import datetime, timedelta, timezone
 from html import escape
 import time
 import traceback
+import json
+import re
+import tempfile
+from pathlib import Path
+from html import unescape
 
 import telebot
 from telebot.apihelper import ApiTelegramException
@@ -14,8 +19,10 @@ from app.config.settings import (
     CANAL_ID_ANALISE
 )
 from app.database.connection import SessionLocal
-from app.database.model import Vaga
+from app.database.model import Vaga, AnaliseVaga
+from app.database.connection import engine
 from app.services.IA.analise.analise_service import AnaliseService
+from app.services.IA.curriculos.gerador_curriculo import GeradorCurriculo
 
 
 if not API_TOKEN:
@@ -33,6 +40,10 @@ if not CANAL_ID_ANALISE:
 
 
 analise_service = AnaliseService()
+gerador_curriculo = GeradorCurriculo()
+
+# Cria a tabela nova sem exigir alteração manual da tabela existente.
+AnaliseVaga.__table__.create(bind=engine, checkfirst=True)
 
 bot = telebot.TeleBot(API_TOKEN)
 
@@ -124,7 +135,9 @@ def formatar_analise(analise, vaga):
         f"🤖 <b>ANÁLISE DA VAGA</b>\n\n"
         f"💼 <b>{escape(str(vaga.titulo))}</b>\n"
         f"🏢 {escape(str(vaga.empresa))}\n"
-        f"📍 {escape(str(vaga.localidade))}"
+        f"📍 {escape(str(vaga.localidade))}\n"
+        f"🔗 {escape(str(vaga.link_vaga or 'Link não informado'))}\n\n"
+        f"📝 <b>DESCRIÇÃO DA VAGA</b>\n{escape(str(vaga.descricao or 'Não informada'))}"
     )
 
     partes.append(
@@ -421,7 +434,15 @@ def formatar_analise(analise, vaga):
     return "\n\n".join(partes)
 
 
-def enviar_analise(analise, vaga):
+def enviar_analise(analise, vaga, session=None):
+
+    if session is not None:
+        registro = session.query(AnaliseVaga).filter_by(vaga_id=vaga.id).first()
+        if registro is None:
+            registro = AnaliseVaga(vaga_id=vaga.id)
+            session.add(registro)
+        registro.resultado_json = json.dumps(analise, ensure_ascii=False)
+        session.commit()
 
     mensagem = formatar_analise(
         analise,
@@ -430,22 +451,65 @@ def enviar_analise(analise, vaga):
 
     limite = 4000
 
-    partes = [
-        mensagem[i:i + limite]
-        for i in range(
-            0,
-            len(mensagem),
-            limite
-        )
-    ]
+    # Telegram limita mensagens a 4096 caracteres; enviar texto sem HTML
+    # evita cortar uma tag no meio quando uma análise é extensa.
+    mensagem_texto = unescape(re.sub(r"<[^>]*>", "", mensagem))
+    partes = []
+    while mensagem_texto:
+        corte = min(limite, len(mensagem_texto))
+        if corte < len(mensagem_texto):
+            quebra = mensagem_texto.rfind("\n", 0, corte)
+            if quebra > 0:
+                corte = quebra
+        partes.append(mensagem_texto[:corte])
+        mensagem_texto = mensagem_texto[corte:].lstrip()
 
-    for parte in partes:
+    markup = telebot.types.InlineKeyboardMarkup()
+    markup.add(telebot.types.InlineKeyboardButton(
+        "📄 Gerar currículo", callback_data=f"curriculo:{vaga.id}"
+    ))
+
+    for indice, parte in enumerate(partes):
 
         bot_analise.send_message(
             CANAL_ID_ANALISE,
             parte,
-            parse_mode="HTML"
+            reply_markup=markup if indice == len(partes) - 1 else None
         )
+
+
+@bot_analise.callback_query_handler(func=lambda call: True)
+def callback_curriculo(call):
+    session = SessionLocal()
+    try:
+        acao, vaga_id = call.data.split(":", 1)
+        if acao != "curriculo":
+            bot_analise.answer_callback_query(call.id, "Ação inválida.")
+            return
+        vaga = session.query(Vaga).filter_by(id=int(vaga_id)).first()
+        registro = session.query(AnaliseVaga).filter_by(vaga_id=int(vaga_id)).first()
+        if not vaga or not registro:
+            bot_analise.answer_callback_query(call.id, "Análise da vaga não encontrada.")
+            return
+        bot_analise.answer_callback_query(call.id, "Gerando currículo personalizado…")
+        texto = gerador_curriculo.gerar_texto(vaga, json.loads(registro.resultado_json))
+        with tempfile.TemporaryDirectory() as pasta:
+            arquivo = Path(pasta) / f"curriculo_vaga_{vaga.id}.docx"
+            gerador_curriculo.criar_docx(texto, arquivo)
+            with arquivo.open("rb") as documento:
+                bot_analise.send_document(
+                    CANAL_ID_ANALISE, documento,
+                    caption=f"Currículo personalizado — {vaga.titulo} | {vaga.empresa or ''}"
+                )
+    except Exception:
+        traceback.print_exc()
+        try:
+            bot_analise.answer_callback_query(call.id, "Erro ao gerar o currículo.")
+            bot_analise.send_message(CANAL_ID_ANALISE, "Não foi possível gerar o currículo. Tente novamente mais tarde.")
+        except Exception:
+            pass
+    finally:
+        session.close()
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -500,7 +564,8 @@ def callback(call):
 
                 enviar_analise(
                     analise,
-                    vaga
+                    vaga,
+                    session
                 )
 
                 print(
@@ -655,7 +720,7 @@ def enviar_vaga(vaga, max_tentativas=3):
             "❌ Rejeitada": {
                 "callback_data": f"rejeitada:{vaga.id}"
             },
-            "🤖 Gerar análise": {
+            "🤖 Analisar vaga com IA": {
                 "callback_data": f"analisar:{vaga.id}"
             }
         },

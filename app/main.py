@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.config.settings import WEBHOOK_URL
-from app.services.telegram.telegram_service import bot
+from app.services.telegram.telegram_service import bot, bot_analise
 from app.webhook.webhook import router as webhook_router
 
 
@@ -23,11 +23,17 @@ async def lifespan(app: FastAPI):
             ]
         )
 
+        bot_analise.set_webhook(
+            url=f"{WEBHOOK_URL.rstrip('/')}/analise",
+            allowed_updates=["callback_query"]
+        )
+
         webhook_info = bot.get_webhook_info()
 
         print(
             f"Webhook configurado: {webhook_info.url}"
         )
+        print(f"Webhook do canal de análise configurado: {bot_analise.get_webhook_info().url}")
 
     except Exception as e:
         print(
