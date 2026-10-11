@@ -386,12 +386,29 @@ class LinkedinScraper(BaseScraper):
                 )
                 if (
                     pagina + 1 >= MAX_PAGINAS
-                    or not proxima.count()
-                    or not proxima.is_enabled()
                 ):
                     break
 
-                proxima.click()
+                if proxima.count() and proxima.is_enabled():
+                    proxima.click()
+                elif cards_publicos:
+                    # A busca pública frequentemente não renderiza o botão
+                    # Próxima. Nesse caso, a paginação do LinkedIn usa `start`.
+                    inicio = (pagina + 1) * MAX_VAGAS_POR_PAGINA
+                    separador = "&" if "?" in URL_BUSCA else "?"
+                    self.page.goto(
+                        f"{URL_BUSCA}{separador}start={inicio}",
+                        wait_until="domcontentloaded",
+                        timeout=30000,
+                    )
+                else:
+                    break
+
+                try:
+                    self.page.wait_for_selector(seletor_atual, timeout=10000)
+                except Exception:
+                    print(f"A página {pagina + 2} não carregou cards; encerrando.")
+                    break
                 self.page.wait_for_timeout(1500)
         finally:
             self.fechar_navegador()
