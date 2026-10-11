@@ -151,34 +151,64 @@ class LinkedinScraper(BaseScraper):
     def _ler_cards_publicos(self, cards):
         """Extrai os cards públicos em uma avaliação do DOM, sem waits por card."""
         registros = cards.evaluate_all(
-            """links => links.map(link => {
-                const card = link.closest('li')
-                    || link.closest('[class*="base-card"]')
-                    || link.parentElement;
+            """items => items.map(item => {
+                const card = item.closest('[componentkey^="job-card-component-ref-"]')
+                    || item.closest('[class*="base-card"]')
+                    || item.closest('li')
+                    || item.parentElement;
                 const texto = node => (node?.innerText || '')
                     .replace(/\\s+/g, ' ').trim();
-                const href = link.href || '';
-                const id = href.match(/\\/jobs\\/view\\/(\\d+)/)?.[1];
+                const componentKey = card?.getAttribute('componentkey')
+                    || item.getAttribute('componentkey') || '';
+                const href = item.href || item.querySelector('a[href]')?.href || '';
+                const bloco = card?.innerText || item.innerText || '';
+                const linhas = bloco.split(/\\n+/)
+                    .map(linha => linha.replace(/\\s+/g, ' ').trim())
+                    .filter(Boolean)
+                    .filter((linha, indice, todas) => indice === 0 || linha !== todas[indice - 1]);
+                const paragrafos = [...(card?.querySelectorAll('p') || [])];
+                const tituloParagrafo = paragrafos[0];
+                const titulo = texto(tituloParagrafo?.querySelector(
+                    'span:not([aria-hidden="true"])'
+                )) || texto(tituloParagrafo);
+                const id = componentKey.match(/job-card-component-ref-(\\d+)/)?.[1]
+                    || href.match(/\\/jobs\\/view\\/(\\d+)/)?.[1]
+                    || href.match(/currentJobId=(\\d+)/)?.[1];
+                const tituloFinal = titulo || texto(card?.querySelector(
+                    '.base-search-card__title, h3, [class*="title"]'
+                )) || linhas[0] || texto(item);
+                const localidade = texto(card?.querySelector(
+                    '.job-search-card__location'
+                )) || texto(paragrafos[2]) || linhas.find(linha =>
+                    /\\b(?:SP|RJ|MG|ES|PR|SC|RS|DF|BA|PE|CE|GO|AM|PA|Brasil)\\b|\\b(?:remoto|h[ií]brido)\\b/i.test(linha)
+                ) || 'Localidade não informada';
+                const empresa = texto(card?.querySelector(
+                    '.base-search-card__subtitle, h4'
+                )) || texto(paragrafos[1]) || linhas.find(linha =>
+                    linha !== tituloFinal
+                    && linha !== localidade
+                    && !/\\b(?:há|today|yesterday|days? ago|weeks? ago|months? ago)\\b/i.test(linha)
+                ) || 'Empresa não informada';
                 return {
                     vaga_id: id,
-                    titulo: texto(card?.querySelector(
-                        '.base-search-card__title, h3'
-                    )) || texto(link),
-                    empresa: texto(card?.querySelector(
-                        '.base-search-card__subtitle, h4'
-                    )) || 'Empresa não informada',
-                    localidade: texto(card?.querySelector(
-                        '.job-search-card__location'
-                    )) || 'Localidade não informada',
+                    titulo: tituloFinal,
+                    empresa,
+                    localidade,
                     publico: true
                 };
             })"""
         )
-        return [
-            registro
-            for registro in registros
-            if registro.get("vaga_id") and registro.get("titulo")
-        ]
+        unicos = {}
+        for registro in registros:
+            vaga_id = registro.get("vaga_id")
+            if vaga_id and registro.get("titulo"):
+                unicos[vaga_id] = registro
+        if not unicos and registros:
+            print(
+                "LinkedIn retornou cards, mas não consegui extrair título/ID. "
+                f"Amostra: {registros[0]}"
+            )
+        return list(unicos.values())
 
     def _processar_card(self, dados):
         vaga_id = dados["vaga_id"]
@@ -253,7 +283,10 @@ class LinkedinScraper(BaseScraper):
             # O HTML atual repete componentkey no botão externo e na div interna.
             # Restringir ao botão seleciona um único card por vaga.
             cards_seletor = "[role='button'][componentkey^='job-card-component-ref-']"
-            cards_publicos_seletor = "a[href*='/jobs/view/']"
+            cards_publicos_seletor = (
+                "[role='button'][componentkey^='job-card-component-ref-'], "
+                "a[href*='/jobs/view/']"
+            )
             cards_publicos = False
             try:
                 self.page.wait_for_selector(cards_seletor, timeout=10000)
