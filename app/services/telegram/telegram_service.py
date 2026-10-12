@@ -646,36 +646,40 @@ def callback(call):
                 )
 
         elif acao == "rejeitada":
-
-            vaga.status = "rejeitada"
-
-            vaga.remover_em = (
-                datetime.now(timezone.utc)
-                + timedelta(days=3)
-            )
-
             if vaga.telegram_message_id:
-
                 try:
-
                     bot.delete_message(
                         CANAL_ID,
                         vaga.telegram_message_id
                     )
-
-                    vaga.telegram_message_id = None
-
                 except ApiTelegramException as e:
+                    descricao = str(
+                        getattr(e, "description", "") or e
+                    ).lower()
+                    mensagem_ja_removida = (
+                        "message to delete not found" in descricao
+                        or "message not found" in descricao
+                    )
+                    if not mensagem_ja_removida:
+                        print(f"Erro ao deletar mensagem rejeitada: {e}")
+                        bot.answer_callback_query(
+                            call.id,
+                            "Não consegui excluir a publicação. Tente novamente."
+                        )
+                        return
 
                     print(
-                        f"Erro ao deletar mensagem: {e}"
+                        f"Publicação da vaga {vaga.id} já não existe no Telegram."
                     )
 
+            # Rejeição é definitiva: apagar o registro também remove a análise
+            # associada pelo cascade configurado no relacionamento do modelo.
+            session.delete(vaga)
             session.commit()
 
             bot.answer_callback_query(
                 call.id,
-                "❌ Vaga rejeitada."
+                "❌ Vaga rejeitada e excluída."
             )
 
         else:
