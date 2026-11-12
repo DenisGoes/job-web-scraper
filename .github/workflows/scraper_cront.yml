@@ -1,0 +1,48 @@
+name: Coleta e Envio de Vagas
+
+on:
+  schedule:
+    # Executa às 08:00, 12:00, 16:00, 18:00 e 20:00 (Horário de Brasília = UTC-3)
+    - cron: "0 11,15,19,21,23 * * *"
+  workflow_dispatch:
+
+jobs:
+  executar-pipeline:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      API_TOKEN: ${{ secrets.API_TOKEN }}
+      CANAL_ID: ${{ secrets.CANAL_ID }}
+      TOKEN_TELEGRAM_ANALISE: ${{ secrets.TOKEN_TELEGRAM_ANALISE }}
+      CANAL_ID_ANALISE: ${{ secrets.CANAL_ID_ANALISE }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Instalar dependências e Chromium
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Limpar vagas expiradas no banco
+        run: python -u -m app.database.cleanup
+
+      - name: Executar scrapers
+        run: |
+          python -u -m app.scrapers.santander_scraper || true
+          python -u -m app.scrapers.bradesco_scraper || true
+          python -u -m app.scrapers.itau_scraper || true
+          python -u -m app.scrapers.infojobs_scraper || true
+          python -u -m app.scrapers.linkedin_scraper || true
+
+      - name: Enviar novas vagas para o Telegram
+        run: python -u -c "from app.services.telegram.telegram_service import enviar_novas_vagas; enviar_novas_vagas()"

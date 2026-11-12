@@ -16,7 +16,7 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: "3.12"
 
       - name: Instalar dependências
         run: |
@@ -28,4 +28,4 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           API_TOKEN: ${{ secrets.API_TOKEN }}
           CANAL_ID: ${{ secrets.CANAL_ID }}
-        run: python -m app.jobs.job_cleanup
+        run: python -m app.services.limpeza_db.clean_db
