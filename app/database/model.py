@@ -1,46 +1,68 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
-from app.database.connection import Base
+from datetime import datetime, timezone
+from typing import Optional
+
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
-# Modelo que representa a tabela de vagas no banco de dados.
+class Base(DeclarativeBase):
+    pass
+
+
 class Vaga(Base):
-
     __tablename__ = "vagas"
 
-    id = Column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    vaga_id = Column(String, unique=True, nullable=False)
-    fonte = Column(String, nullable=False)
-    
-    titulo = Column(String, nullable=False)
-    empresa = Column(String)
-    localidade = Column(String)
-    salario = Column(String)
-    modelo_trabalho = Column(String)
-    descricao = Column(String)
-    data_publicacao = Column(String)
-    link_vaga = Column(String, unique=True, nullable=False)
-    mensagem = Column(Text)
+    vaga_id: Mapped[str] = mapped_column(String, unique=True)
+    fonte: Mapped[str] = mapped_column(String)
 
-    status = Column(String, default="nova")
-    remover_em = Column(DateTime(timezone=True), nullable=True)
-    ultimo_lembrete = Column(DateTime(timezone=True), nullable=True)
-    telegram_message_id = Column(Integer)
-    analise = relationship(
-        "AnaliseVaga",
+    titulo: Mapped[str] = mapped_column(String)
+    empresa: Mapped[Optional[str]] = mapped_column(String)
+    localidade: Mapped[Optional[str]] = mapped_column(String)
+    salario: Mapped[Optional[str]] = mapped_column(String)
+    modelo_trabalho: Mapped[Optional[str]] = mapped_column(String)
+    descricao: Mapped[Optional[str]] = mapped_column(Text)
+    data_publicacao: Mapped[Optional[str]] = mapped_column(String)
+    link_vaga: Mapped[str] = mapped_column(String, unique=True)
+    mensagem: Mapped[Optional[str]] = mapped_column(Text)
+
+    status: Mapped[str] = mapped_column(String, default="nova")
+    criado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+    atualizado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+    data_salva: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    data_aplicada: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    ultimo_lembrete: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    remover_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    telegram_message_id: Mapped[Optional[int]] = mapped_column(Integer)
+
+    analises: Mapped[list["AnaliseVaga"]] = relationship(
         back_populates="vaga",
         cascade="all, delete-orphan",
-        uselist=False,
     )
 
 
 class AnaliseVaga(Base):
-
     __tablename__ = "analises_vagas"
 
-    id = Column(Integer, primary_key=True)
-    vaga_id = Column(Integer, ForeignKey("vagas.id"), nullable=False, unique=True)
-    resultado_json = Column(Text, nullable=False)
-    vaga = relationship("Vaga", back_populates="analise")
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    vaga_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("vagas.id", ondelete="CASCADE"),
+        unique=True,
+    )
+    resultado_json: Mapped[str] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
 
+    vaga: Mapped["Vaga"] = relationship(back_populates="analises")
