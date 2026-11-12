@@ -1,4 +1,6 @@
 import json
+import base64
+import os
 import random
 from pathlib import Path
 from typing import Any
@@ -9,17 +11,27 @@ from playwright.sync_api import Browser, BrowserContext, Locator, Page, Playwrig
 load_dotenv()
 
 
-def carregar_storage_state(origem: str | dict[str, Any] | None = None) -> str | dict[str, Any] | None:
+def carregar_storage_state(origem):
     if not origem:
         return None
-
     if isinstance(origem, dict):
         return origem
 
-    if Path(origem).is_file():
-        return origem
+    valor = str(origem).strip()
+    if not valor:
+        return None
 
-    return json.loads(origem)
+    # 1. Se for um caminho de arquivo existente no disco (ex.: GitHub Actions / local)
+    if os.path.exists(valor):
+        with open(valor, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    # 2. Se for string Base64 (ex.: variável de ambiente no Render)
+    if not valor.startswith("{"):
+        valor = base64.b64decode(valor).decode("utf-8")
+
+    # 3. Faz o parse do JSON já decodificado
+    return json.loads(valor)
 
 
 def iniciar_navegador(
