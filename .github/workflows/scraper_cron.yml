@@ -17,6 +17,8 @@ jobs:
       CANAL_ID_ANALISE: ${{ secrets.CANAL_ID_ANALISE }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+      LINKEDIN_LOG: ${{ secrets.LINKEDIN_LOG }}
+      INFOJOBS_LOG: ${{ secrets.INFOJOBS_LOG }}
 
     steps:
       - name: Checkout do repositório
@@ -32,6 +34,15 @@ jobs:
         run: |
           pip install -r requirements.txt
           playwright install --with-deps chromium
+
+      - name: Restaurar arquivos de sessão (LinkedIn e InfoJobs)
+        run: |
+          if [ -n "$LINKEDIN_LOG" ]; then
+            printf '%s' "$LINKEDIN_LOG" > linkedin_log.json
+          fi
+          if [ -n "$INFOJOBS_LOG" ]; then
+            printf '%s' "$INFOJOBS_LOG" > infojobslog.json
+          fi
 
       - name: Limpar vagas expiradas no banco
         run: python -u -m app.services.limpeza_db.clean_db
