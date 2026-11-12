@@ -34,7 +34,7 @@ jobs:
           playwright install --with-deps chromium
 
       - name: Limpar vagas expiradas no banco
-          run: python -u -m app.services.limpeza_db.clean_db
+        run: python -u -m app.services.limpeza_db.clean_db
 
       - name: Executar scrapers
         run: |
