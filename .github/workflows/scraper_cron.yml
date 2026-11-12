@@ -17,8 +17,6 @@ jobs:
       CANAL_ID_ANALISE: ${{ secrets.CANAL_ID_ANALISE }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
-      LINKEDIN_LOG: ${{ secrets.LINKEDIN_LOG }}
-      INFOJOBS_LOG: ${{ secrets.INFOJOBS_LOG }}
 
     steps:
       - name: Checkout do repositório
@@ -36,12 +34,17 @@ jobs:
           playwright install --with-deps chromium
 
       - name: Restaurar arquivos de sessão (LinkedIn e InfoJobs)
+        env:
+          RAW_LINKEDIN_LOG: ${{ secrets.LINKEDIN_LOG }}
+          RAW_INFOJOBS_LOG: ${{ secrets.INFOJOBS_LOG }}
         run: |
-          if [ -n "$LINKEDIN_LOG" ]; then
-            printf '%s' "$LINKEDIN_LOG" > linkedin_log.json
+          if [ -n "$RAW_LINKEDIN_LOG" ]; then
+            printf '%s' "$RAW_LINKEDIN_LOG" > linkedin_log.json
+            echo "LINKEDIN_LOG=linkedin_log.json" >> "$GITHUB_ENV"
           fi
-          if [ -n "$INFOJOBS_LOG" ]; then
-            printf '%s' "$INFOJOBS_LOG" > infojobslog.json
+          if [ -n "$RAW_INFOJOBS_LOG" ]; then
+            printf '%s' "$RAW_INFOJOBS_LOG" > infojobslog.json
+            echo "INFOJOBS_LOG=infojobslog.json" >> "$GITHUB_ENV"
           fi
 
       - name: Limpar vagas expiradas no banco
