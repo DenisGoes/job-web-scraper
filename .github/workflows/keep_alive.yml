@@ -17,7 +17,7 @@ jobs:
         run: |
           CLEAN_URL="${BASE_URL%/webhook}"
           CLEAN_URL="${CLEAN_URL%/}"
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "${CLEAN_URL}/healthz")
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 15 --max-time 60 --retry 2 --retry-delay 5 "${CLEAN_URL}/healthz" || true)
           echo "URL chamada: ${CLEAN_URL}/healthz | HTTP Status: $STATUS"
           if [ "$STATUS" != "200" ]; then
             echo "Aviso: API retornou status $STATUS (pode estar acordando)."
