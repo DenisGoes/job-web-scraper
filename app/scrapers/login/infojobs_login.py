@@ -1,26 +1,30 @@
-from playwright.sync_api import sync_playwright
+from pathlib import Path
+
+from app.scrapers.base_scraper import fechar_navegador, iniciar_navegador
+
+RAIZ_PROJETO = Path.cwd()
+CAMINHO_SAIDA = RAIZ_PROJETO / "infojobslog.json"
 
 
-def salvar_login_infojobs():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=True #True para produção, False para desenvolvimento - Esse trecho faz com que a janela do google ebra ou não!
-        )
+def salvar_login_infojobs(caminho_arquivo: Path = CAMINHO_SAIDA) -> None:
+    playwright, browser, context, page = iniciar_navegador(headless=False)
 
-        context = browser.new_context()
+    try:
+        page.goto("https://www.infojobs.com.br/", wait_until="domcontentloaded")
 
-        page = context.new_page()
+        print("\n=== Captura de Sessão - InfoJobs ===")
+        print("1. Faça login manualmente na janela do navegador que foi aberta.")
+        print("2. Resolva qualquer captcha ou confirmação de e-mail/SMS, se aparecer.")
+        input("3. Depois que estiver logado na sua conta, pressione ENTER aqui...")
 
-        page.goto("https://www.infojobs.com.br/")
+        caminho_arquivo.parent.mkdir(parents=True, exist_ok=True)
+        context.storage_state(path=str(caminho_arquivo))
 
-        print("Faça login manualmente no InfoJobs.")
-        input("Depois que terminar o login, pressione ENTER aqui...")
+        print(f"\nLogin salvo com sucesso em: {caminho_arquivo}")
+        print("Dica: para produção, você pode copiar o conteúdo desse JSON para a variável INFOJOBS_LOG no .env.")
 
-        context.storage_state(path="infojobs.json")
-
-        print("Login salvo em cookies/infojobs.json")
-
-        browser.close()
+    finally:
+        fechar_navegador(playwright, browser, context)
 
 
 if __name__ == "__main__":

@@ -1,43 +1,84 @@
-from playwright.sync_api import sync_playwright
+import json
+import random
+from pathlib import Path
+from typing import Any
 
-from app.model.vaga import Vaga
-from app.repository.vaga_repository import VagaRepository
+from dotenv import load_dotenv
+from playwright.sync_api import Browser, BrowserContext, Locator, Page, Playwright, sync_playwright
+
+load_dotenv()
 
 
-class BaseScraper:
+def carregar_storage_state(origem: str | dict[str, Any] | None = None) -> str | dict[str, Any] | None:
+    if not origem:
+        return None
 
-    def __init__(self, fonte):
-        self.fonte = fonte
-        self.playwright = None
-        self.browser = None
-        self.context = None
-        self.page = None
-        self.repository = VagaRepository()
+    if isinstance(origem, dict):
+        return origem
 
-    def iniciar_navegador(self, storage_state=None):
+    if Path(origem).is_file():
+        return origem
 
-        self.playwright = sync_playwright().start()
+    return json.loads(origem)
 
-        self.browser = self.playwright.chromium.launch(
-            headless=True, #True para produção, False para desenvolvimento - Esse trecho faz com que a janela do google ebra ou não!
-            args=["--no-sandbox"]
-        )
 
-        self.context = self.browser.new_context(
-            storage_state=storage_state
-        )
+def iniciar_navegador(
+    storage_state: str | dict[str, Any] | None = None,
+    headless: bool = True,
+) -> tuple[Playwright, Browser, BrowserContext, Page]:
+    playwright = sync_playwright().start()
 
-        self.page = self.context.new_page()
+    browser = playwright.chromium.launch(
+        headless=headless,
+        args=["--no-sandbox"],
+    )
 
-        self.page.set_default_timeout(30000)
+    estado_resolvido = carregar_storage_state(storage_state)
+    context = browser.new_context(storage_state=estado_resolvido)
+    page = context.new_page()
+    page.set_default_timeout(30000)
 
-    def fechar_navegador(self):
+    return playwright, browser, context, page
 
-        if self.browser:
-            self.browser.close()
 
-        if self.playwright:
-            self.playwright.stop()
+def rolar_ate_estabilizar(
+    page: Page,
+    card_selector: str,
+    max_scrolls: int = 15,
+    timeout_inicial: int = 30000,
+) -> Locator:
+    page.wait_for_selector(card_selector, timeout=timeout_inicial)
+    cards = page.locator(card_selector)
+    cards.first.hover()
 
-    def salvar_vaga(self, vaga: Vaga):
-        return self.repository.salvar(vaga)
+    vagas_antes = 0
+    tentativas = 0
+
+    while tentativas < max_scrolls:
+        page.mouse.wheel(0, 800)
+        page.wait_for_timeout(int(random.uniform(700, 1300)))
+
+        vagas_agora = cards.count()
+        if vagas_agora == vagas_antes:
+            break
+
+        vagas_antes = vagas_agora
+        tentativas += 1
+
+    print(f"Scroll finalizado: {vagas_antes} vagas carregadas na tela.")
+    return cards
+
+
+def fechar_navegador(
+    playwright: Playwright | None = None,
+    browser: Browser | None = None,
+    context: BrowserContext | None = None,
+) -> None:
+    if context:
+        context.close()
+
+    if browser:
+        browser.close()
+
+    if playwright:
+        playwright.stop()
