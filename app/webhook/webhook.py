@@ -3,11 +3,12 @@ import telebot
 
 from app.services.telegram.telegram_service import bot, bot_analise
 
-
 router = APIRouter()
 
 
-async def _processar_update(request, telegram_bot, nome):
+async def _processar_update(
+    request: Request, telegram_bot: telebot.TeleBot, nome: str
+):
     try:
         update = await request.json()
         if update:
@@ -15,7 +16,7 @@ async def _processar_update(request, telegram_bot, nome):
             telegram_bot.process_new_updates([telegram_update])
         return {"status": "ok"}
     except Exception as e:
-        print(f"Erro no webhook {nome}: {e}")
+        print(f"Erro no webhook {nome}: {e}", flush=True)
         return {"status": "error", "message": str(e)}
 
 
