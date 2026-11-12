@@ -2,7 +2,7 @@ name: Coleta e Envio de Vagas
 
 on:
   schedule:
-    # Executa às 08:00, 12:00, 16:00, 18:00 e 20:00 (Horário de Brasília = UTC-3)
+    # Executa às 08:00, 12:00, 16:00, 18:00 e 20:00 (BRT = UTC-3)
     - cron: "0 11,15,19,21,23 * * *"
   workflow_dispatch:
 
