@@ -1,30 +1,57 @@
-- name: Restaurar arquivos de sessão (LinkedIn e InfoJobs)
+name: Coleta e Envio de Vagas
+
+on:
+  schedule:
+    # Executa às 08:00, 12:00, 16:00, 18:00 e 20:00 (Horário de Brasília = UTC-3)
+    - cron: "0 11,15,19,21,23 * * *"
+  workflow_dispatch:
+
+jobs:
+  executar-pipeline:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      API_TOKEN: ${{ secrets.API_TOKEN }}
+      CANAL_ID: ${{ secrets.CANAL_ID }}
+      TOKEN_TELEGRAM_ANALISE: ${{ secrets.TOKEN_TELEGRAM_ANALISE }}
+      CANAL_ID_ANALISE: ${{ secrets.CANAL_ID_ANALISE }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Instalar dependências e Chromium
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: Restaurar arquivos de sessão (LinkedIn e InfoJobs)
         env:
           RAW_LINKEDIN_LOG: ${{ secrets.LINKEDIN_LOG }}
           RAW_INFOJOBS_LOG: ${{ secrets.INFOJOBS_LOG }}
         run: |
-          python - << 'EOF'
-          import base64, json, os
-
-          def restaurar(env_name, target_file):
-              raw = (os.environ.get(env_name) or "").strip()
-              if not raw:
-                  print(f"Aviso: secret {env_name} está vazio.")
-                  return
-              # Tenta decodificar Base64 se não começar com '{'
-              if not raw.startswith("{"):
-                  try:
-                      raw = base64.b64decode(raw).decode("utf-8")
-                  except Exception as e:
-                      raise RuntimeError(f"Falha ao decodificar Base64 de {env_name}: {e}")
-              # Valida se é um JSON válido antes de salvar
-              json.loads(raw)
-              with open(target_file, "w", encoding="utf-8") as f:
-                  f.write(raw)
-              print(f"Arquivo {target_file} restaurado e validado com sucesso.")
-
-          restaurar("RAW_LINKEDIN_LOG", "linkedin_log.json")
-          restaurar("RAW_INFOJOBS_LOG", "infojobslog.json")
-          EOF
+          python -c 'import base64, json, os; [open(f, "w", encoding="utf-8").write(json.dumps(json.loads(v if v.startswith("{") else base64.b64decode(v).decode("utf-8")))) for k, f in [("RAW_LINKEDIN_LOG", "linkedin_log.json"), ("RAW_INFOJOBS_LOG", "infojobslog.json")] if (v := (os.environ.get(k) or "").strip())]'
           echo "LINKEDIN_LOG=linkedin_log.json" >> "$GITHUB_ENV"
           echo "INFOJOBS_LOG=infojobslog.json" >> "$GITHUB_ENV"
+
+      - name: Limpar vagas expiradas no banco
+        run: python -u -m app.services.limpeza_db.clean_db
+
+      - name: Executar scrapers
+        run: |
+          python -u -m app.scrapers.santander_scraper || true
+          python -u -m app.scrapers.bradesco_scraper || true
+          python -u -m app.scrapers.itau_scraper || true
+          python -u -m app.scrapers.infojobs_scraper || true
+          python -u -m app.scrapers.linkedin_scraper || true
+
+      - name: Enviar novas vagas para o Telegram
+        run: python -u -c "from app.services.telegram.telegram_service import enviar_novas_vagas; enviar_novas_vagas()"
